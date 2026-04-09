@@ -63,7 +63,7 @@ body {
 /* ===== MAP PAGE ===== */
 .map-page {
     display: flex;
-    height: calc(100vh - 52px);
+    height: calc(100vh - 48px);
     overflow: hidden;
 }
 
@@ -189,6 +189,7 @@ body {
 
 /* ===== ORDERS PAGE ===== */
 main { padding: 24px; flex: 1; }
+main:has(.map-page) { padding: 0; overflow: hidden; }
 
 .orders-page { max-width: 1400px; margin: 0 auto; }
 

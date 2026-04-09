@@ -91,7 +91,7 @@
     string? _error;
     DateTime? _filterDate;
     DotNetObjectReference<Map>? _dotNetRef;
-    bool _mapReady = false;
+    bool _mapInitialized = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -101,8 +101,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_loading)
+        // Initialize map after data is loaded (may be firstRender=false if prerendering)
+        if (!_mapInitialized && !_loading && _error == null)
         {
+            _mapInitialized = true;
             await InitMap();
         }
     }
