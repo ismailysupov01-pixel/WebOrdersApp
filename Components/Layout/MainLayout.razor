@@ -1,0 +1,25 @@
+@inherits LayoutComponentBase
+@inject UserSession Session
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    @if (Session.IsAuthenticated)
+    {
+        <header class="top-bar">
+            <span class="app-title">Управление заявками</span>
+            <span class="role-badge">@Session.Role</span>
+            <button class="btn-logout" @onclick="Logout">Сменить роль</button>
+        </header>
+    }
+    <main>
+        @Body
+    </main>
+</div>
+
+@code {
+    void Logout()
+    {
+        Session.Role = "";
+        Nav.NavigateTo("/", forceLoad: false);
+    }
+}

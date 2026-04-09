@@ -1,0 +1,129 @@
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Auth.OAuth2.Flows;
+using Google.Apis.Auth.OAuth2.Responses;
+using Google.Apis.Services;
+using Google.Apis.Sheets.v4;
+using Google.Apis.Sheets.v4.Data;
+using WebOrdersApp.Models;
+
+namespace WebOrdersApp.Services;
+
+public class GoogleSheetsService
+{
+    private SheetsService? _service;
+    private readonly string _spreadsheetId;
+    private readonly string _sheetName;
+    private readonly IConfiguration _config;
+
+    public GoogleSheetsService(IConfiguration config)
+    {
+        _config = config;
+        _spreadsheetId = config["SpreadsheetId"] ?? "";
+        _sheetName = config["SheetName"] ?? "Лист1";
+    }
+
+    public async Task InitAsync()
+    {
+        // Try environment variables first (production on Render)
+        var clientId     = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
+                           ?? _config["GoogleOAuth:ClientId"] ?? "";
+        var clientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET")
+                           ?? _config["GoogleOAuth:ClientSecret"] ?? "";
+        var refreshToken = Environment.GetEnvironmentVariable("GOOGLE_REFRESH_TOKEN")
+                           ?? _config["GoogleOAuth:RefreshToken"] ?? "";
+
+        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+        {
+            ClientSecrets = new ClientSecrets
+            {
+                ClientId     = clientId,
+                ClientSecret = clientSecret
+            },
+            Scopes = new[] { SheetsService.Scope.Spreadsheets }
+        });
+
+        var credential = new UserCredential(flow, "user", new TokenResponse
+        {
+            RefreshToken = refreshToken
+        });
+
+        _service = new SheetsService(new BaseClientService.Initializer
+        {
+            HttpClientInitializer = credential,
+            ApplicationName       = "WebOrdersApp"
+        });
+
+        // warm-up
+        await Task.CompletedTask;
+    }
+
+    public async Task<List<Order>> GetOrdersAsync()
+    {
+        var range    = $"{_sheetName}!A2:H";
+        var request  = _service!.Spreadsheets.Values.Get(_spreadsheetId, range);
+        var response = await request.ExecuteAsync();
+        var orders   = new List<Order>();
+
+        if (response.Values == null) return orders;
+
+        int rowIndex = 2;
+        foreach (var row in response.Values)
+        {
+            string Get(int i) => row.Count > i ? row[i]?.ToString() ?? "" : "";
+            orders.Add(new Order
+            {
+                RowIndex     = rowIndex,
+                OrderNumber  = rowIndex - 1,
+                Address      = Get(0),
+                Phone        = Get(1),
+                Amount       = Get(2),
+                Date         = Get(3),
+                Status       = string.IsNullOrEmpty(Get(4)) ? OrderStatus.New : Get(4),
+                Comments     = Get(5),
+                TwoGisLink   = Get(6)
+            });
+            rowIndex++;
+        }
+        return orders;
+    }
+
+    public async Task AddOrderAsync(Order order)
+    {
+        var range = $"{_sheetName}!A:G";
+        var link  = Build2GisLink(order.Address);
+        var body  = new ValueRange
+        {
+            Values = new List<IList<object>>
+            {
+                new List<object>
+                {
+                    order.Address,
+                    order.Phone,
+                    order.Amount,
+                    order.Date,
+                    OrderStatus.New,
+                    order.Comments,
+                    link
+                }
+            }
+        };
+        var req = _service!.Spreadsheets.Values.Append(body, _spreadsheetId, range);
+        req.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.RAW;
+        await req.ExecuteAsync();
+    }
+
+    public async Task UpdateStatusAsync(int rowIndex, string newStatus)
+    {
+        var range = $"{_sheetName}!E{rowIndex}";
+        var body  = new ValueRange
+        {
+            Values = new List<IList<object>> { new List<object> { newStatus } }
+        };
+        var req = _service!.Spreadsheets.Values.Update(body, _spreadsheetId, range);
+        req.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+        await req.ExecuteAsync();
+    }
+
+    public static string Build2GisLink(string address) =>
+        $"https://2gis.kz/almaty/search/{Uri.EscapeDataString(address)}";
+}

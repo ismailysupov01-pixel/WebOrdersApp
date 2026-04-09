@@ -1,0 +1,294 @@
+@page "/orders"
+@inject GoogleSheetsService Sheets
+@inject UserSession Session
+@inject NavigationManager Nav
+
+@if (!Session.IsAuthenticated)
+{
+    Nav.NavigateTo("/");
+    return;
+}
+
+<div class="orders-page">
+    <div class="orders-header">
+        <h2>Заявки</h2>
+        <div class="header-actions">
+            <button class="btn-refresh" @onclick="LoadOrders" disabled="@_loading">
+                @(_loading ? "Загрузка..." : "Обновить")
+            </button>
+            @if (Session.Role == "Оператор")
+            {
+                <button class="btn-add" @onclick="OpenAdd">+ Новая заявка</button>
+            }
+        </div>
+    </div>
+
+    @if (_error != null)
+    {
+        <div class="alert-error">@_error</div>
+    }
+
+    @if (_orders == null)
+    {
+        <div class="loading-text">Загрузка заявок...</div>
+    }
+    else if (_orders.Count == 0)
+    {
+        <div class="loading-text">Заявок нет.</div>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Адрес</th>
+                        <th>Телефон</th>
+                        <th>Сумма</th>
+                        <th>Дата</th>
+                        <th>Статус</th>
+                        <th>Комментарии</th>
+                        <th>2ГИС</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in _orders)
+                    {
+                        <tr class="@RowClass(o.Status)" @onclick="() => OpenDetail(o)" style="cursor:pointer">
+                            <td>@o.OrderNumber</td>
+                            <td>@o.Address</td>
+                            <td>@o.Phone</td>
+                            <td>@o.Amount</td>
+                            <td>@o.Date</td>
+                            <td><span class="status-badge @StatusClass(o.Status)">@o.Status</span></td>
+                            <td>@o.Comments</td>
+                            <td @onclick:stopPropagation="true">
+                                @if (!string.IsNullOrEmpty(o.TwoGisLink))
+                                {
+                                    <a href="@o.TwoGisLink" target="_blank" class="link-2gis">Открыть</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Add Order Modal -->
+@if (_showAdd)
+{
+    <div class="modal-overlay" @onclick="CloseAdd">
+        <div class="modal-box" @onclick:stopPropagation="true">
+            <h3>Новая заявка</h3>
+            <div class="form-group">
+                <label>Адрес *</label>
+                <input value="@_newOrder.Address"
+                       @oninput="OnAddressInput"
+                       class="form-input" placeholder="Улица, дом"/>
+            </div>
+            <div class="form-group">
+                <label>Телефон</label>
+                <input value="@_phoneInput"
+                       @oninput="OnPhoneInput"
+                       class="form-input" placeholder="+7"/>
+            </div>
+            <div class="form-group">
+                <label>Сумма</label>
+                <input value="@_newOrder.Amount"
+                       @oninput="OnAmountInput"
+                       class="form-input" placeholder="0"/>
+            </div>
+            <div class="form-group">
+                <label>Дата</label>
+                <input type="date" @bind="_dateValue" class="form-input"/>
+            </div>
+            <div class="form-group">
+                <label>Комментарии</label>
+                <textarea @bind="_newOrder.Comments" class="form-input" rows="3"></textarea>
+            </div>
+            @if (_addError != null)
+            {
+                <div class="alert-error">@_addError</div>
+            }
+            <div class="modal-buttons">
+                <button class="btn-save" @onclick="SaveOrder" disabled="@_saving">
+                    @(_saving ? "Сохранение..." : "Сохранить")
+                </button>
+                <button class="btn-cancel" @onclick="CloseAdd">Отмена</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Detail / Status Modal -->
+@if (_selected != null)
+{
+    <div class="modal-overlay" @onclick="CloseDetail">
+        <div class="modal-box" @onclick:stopPropagation="true">
+            <h3>Заявка №@_selected.OrderNumber</h3>
+            <table class="detail-table">
+                <tr><th>Адрес</th><td>@_selected.Address</td></tr>
+                <tr><th>Телефон</th><td>@_selected.Phone</td></tr>
+                <tr><th>Сумма</th><td>@_selected.Amount</td></tr>
+                <tr><th>Дата</th><td>@_selected.Date</td></tr>
+                <tr><th>Комментарии</th><td>@_selected.Comments</td></tr>
+                <tr>
+                    <th>2ГИС</th>
+                    <td>
+                        @if (!string.IsNullOrEmpty(_selected.TwoGisLink))
+                        {
+                            <a href="@_selected.TwoGisLink" target="_blank" class="link-2gis">Открыть карту</a>
+                        }
+                    </td>
+                </tr>
+            </table>
+
+            <div class="form-group" style="margin-top:16px">
+                <label>Статус</label>
+                <select @bind="_selectedStatus" class="form-input">
+                    <option>@OrderStatus.New</option>
+                    <option>@OrderStatus.Completed</option>
+                    <option>@OrderStatus.Cancelled</option>
+                </select>
+            </div>
+            @if (_detailError != null)
+            {
+                <div class="alert-error">@_detailError</div>
+            }
+            <div class="modal-buttons">
+                <button class="btn-save" @onclick="SaveStatus" disabled="@_saving">
+                    @(_saving ? "Сохранение..." : "Сохранить статус")
+                </button>
+                <button class="btn-cancel" @onclick="CloseDetail">Закрыть</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<Order>? _orders;
+    bool _loading = false;
+    string? _error;
+
+    // Add modal
+    bool _showAdd = false;
+    Order _newOrder = new();
+    string _phoneInput = "";
+    DateTime _dateValue = DateTime.Today;
+    bool _saving = false;
+    string? _addError;
+
+    // Detail modal
+    Order? _selected;
+    string _selectedStatus = "";
+    string? _detailError;
+
+    protected override async Task OnInitializedAsync() => await LoadOrders();
+
+    async Task LoadOrders()
+    {
+        _loading = true;
+        _error = null;
+        try { _orders = await Sheets.GetOrdersAsync(); }
+        catch (Exception ex) { _error = "Ошибка загрузки: " + ex.Message; }
+        finally { _loading = false; }
+    }
+
+    void OpenAdd()
+    {
+        _newOrder = new Order();
+        _phoneInput = "";
+        _dateValue = DateTime.Today;
+        _addError = null;
+        _showAdd = true;
+    }
+    void CloseAdd() => _showAdd = false;
+
+    void OnAddressInput(ChangeEventArgs e) => _newOrder.Address = e.Value?.ToString() ?? "";
+    void OnAmountInput(ChangeEventArgs e)  => _newOrder.Amount  = e.Value?.ToString() ?? "";
+
+    void OnPhoneInput(ChangeEventArgs e)
+    {
+        _phoneInput = e.Value?.ToString() ?? "";
+        _newOrder.Phone = FormatPhone(_phoneInput);
+    }
+
+    async Task SaveOrder()
+    {
+        if (string.IsNullOrWhiteSpace(_newOrder.Address))
+        {
+            _addError = "Укажите адрес.";
+            return;
+        }
+        _saving = true;
+        _addError = null;
+        try
+        {
+            _newOrder.Date  = _dateValue.ToString("dd.MM.yyyy");
+            _newOrder.Phone = FormatPhone(_newOrder.Phone);
+            await Sheets.AddOrderAsync(_newOrder);
+            _showAdd = false;
+            await LoadOrders();
+        }
+        catch (Exception ex)
+        {
+            _addError = "Ошибка сохранения: " + ex.Message;
+        }
+        finally { _saving = false; }
+    }
+
+    void OpenDetail(Order o)
+    {
+        _selected = o;
+        _selectedStatus = o.Status;
+        _detailError = null;
+    }
+    void CloseDetail() => _selected = null;
+
+    async Task SaveStatus()
+    {
+        if (_selected == null) return;
+        if (_selectedStatus == _selected.Status) { CloseDetail(); return; }
+        _saving = true;
+        _detailError = null;
+        try
+        {
+            await Sheets.UpdateStatusAsync(_selected.RowIndex, _selectedStatus);
+            _selected.Status = _selectedStatus;
+            CloseDetail();
+            await LoadOrders();
+        }
+        catch (Exception ex) { _detailError = "Ошибка: " + ex.Message; }
+        finally { _saving = false; }
+    }
+
+    static string RowClass(string status) => status switch
+    {
+        OrderStatus.Completed => "row-green",
+        OrderStatus.Cancelled => "row-red",
+        _ => "row-blue"
+    };
+
+    static string StatusClass(string status) => status switch
+    {
+        OrderStatus.Completed => "status-green",
+        OrderStatus.Cancelled => "status-red",
+        _ => "status-blue"
+    };
+
+    static string FormatPhone(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return input;
+        var digits = new string(input.Where(char.IsDigit).ToArray());
+        if (string.IsNullOrEmpty(digits)) return input;
+        if (digits.StartsWith("8")) digits = "7" + digits[1..];
+        if (!digits.StartsWith("7") && digits.Length == 10) digits = "7" + digits;
+        if (digits.StartsWith("7") && digits.Length == 11)
+            return $"+7{digits[1..4]} {digits[4..7]} {digits[7..9]} {digits[9..11]}";
+        if (digits.StartsWith("7")) return "+" + digits;
+        return input;
+    }
+}

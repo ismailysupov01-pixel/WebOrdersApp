@@ -1,0 +1,29 @@
+@page "/"
+@inject UserSession Session
+@inject NavigationManager Nav
+
+<div class="role-select-wrapper">
+    <div class="role-select-card">
+        <h2>Выберите роль</h2>
+        <button class="btn-role operator" @onclick='() => SelectRole("Оператор")'>
+            Оператор
+        </button>
+        <button class="btn-role executor" @onclick='() => SelectRole("Исполнитель")'>
+            Исполнитель
+        </button>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (Session.IsAuthenticated)
+            Nav.NavigateTo("/orders");
+    }
+
+    void SelectRole(string role)
+    {
+        Session.Role = role;
+        Nav.NavigateTo("/orders");
+    }
+}
