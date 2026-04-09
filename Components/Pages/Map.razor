@@ -12,8 +12,19 @@
 }
 
 <div class="map-page">
+
+    <!-- Mobile tab switcher -->
+    <div class="mobile-tabs">
+        <button class="mobile-tab @(!_mobileMapView ? "active" : "")" @onclick="() => _mobileMapView = false">
+            📋 Список (@_filtered.Count)
+        </button>
+        <button class="mobile-tab @(_mobileMapView ? "active" : "")" @onclick="() => _mobileMapView = true">
+            🗺 Карта
+        </button>
+    </div>
+
     <!-- Sidebar -->
-    <div class="map-sidebar">
+    <div class="map-sidebar @(_mobileMapView ? "mobile-hidden" : "")">
         <div class="map-sidebar-header">
             <h3>Невыполненные заявки</h3>
             <div class="form-group" style="margin-bottom:0">
@@ -71,15 +82,14 @@
     </div>
 
     <!-- Map -->
-    <div class="map-main">
+    <div class="map-main @(!_mobileMapView ? "mobile-hidden" : "")">
         @if (_selected != null)
         {
             <div class="map-info-panel">
                 <strong>№@_selected.OrderNumber</strong> — @_selected.Address
-                @if (!string.IsNullOrEmpty(_selected.Phone)) { <span> · @_selected.Phone</span> }
-                @if (!string.IsNullOrEmpty(_selected.TwoGisLink))
+                @if (!string.IsNullOrEmpty(_selected.Phone))
                 {
-                    <a href="@_selected.TwoGisLink" target="_blank" class="link-2gis" style="margin-left:10px">Открыть в 2ГИС</a>
+                    <span> · <a href="https://wa.me/@(WaPhone(_selected.Phone))" target="_blank" class="wa-link">@_selected.Phone</a></span>
                 }
                 <button class="map-info-close" @onclick="() => _selected = null">✕</button>
             </div>
@@ -99,8 +109,9 @@
     bool _loading = true;
     bool _geocoding = false;
     string? _error;
-    DateTime _filterDate = DateTime.Today;   // показываем сегодня в поле
-    bool _filterActive = false;              // но фильтр не применён — показываем всё
+    DateTime _filterDate = DateTime.Today;
+    bool _filterActive = false;
+    bool _mobileMapView = false;
     DotNetObjectReference<Map>? _dotNetRef;
     bool _mapInitialized = false;
 
@@ -112,7 +123,6 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Initialize map after data is loaded (may be firstRender=false if prerendering)
         if (!_mapInitialized && !_loading && _error == null)
         {
             _mapInitialized = true;
@@ -152,7 +162,7 @@
         if (DateTime.TryParse(e.Value?.ToString(), out var dt))
         {
             _filterDate = dt;
-            _filterActive = true;   // пользователь выбрал дату — применяем фильтр
+            _filterActive = true;
         }
         ApplyFilter();
         _mapInitialized = false;
@@ -161,8 +171,8 @@
 
     async Task ClearDate()
     {
-        _filterDate = DateTime.Today;  // сбрасываем на сегодня
-        _filterActive = false;         // но показываем все заявки
+        _filterDate = DateTime.Today;
+        _filterActive = false;
         ApplyFilter();
         _mapInitialized = false;
         await InitMap();
@@ -173,12 +183,10 @@
         if (_geocoding) return;
         _geocoding = true;
         StateHasChanged();
-
         try
         {
             _dotNetRef?.Dispose();
             _dotNetRef = DotNetObjectReference.Create(this);
-
             var orders = _filtered.Select(o => new
             {
                 orderNumber = o.OrderNumber,
@@ -186,9 +194,9 @@
                 phone       = o.Phone,
                 amount      = o.Amount,
                 date        = o.Date,
+                comments    = o.Comments,
                 twoGisLink  = o.TwoGisLink
             }).ToList();
-
             await JS.InvokeVoidAsync("mapInit", orders, _dotNetRef);
         }
         catch (Exception ex) { _error = "Ошибка карты: " + ex.Message; }
@@ -199,18 +207,20 @@
     public void OnMarkerClick(int orderNumber)
     {
         _selected = _filtered.FirstOrDefault(o => o.OrderNumber == orderNumber);
+        _mobileMapView = true;
         StateHasChanged();
     }
-
-    static string WaPhone(string phone) =>
-        new string(phone.Where(char.IsDigit).ToArray());
 
     async Task SelectOrder(Order o)
     {
         _selected = o;
+        _mobileMapView = true;
         try { await JS.InvokeVoidAsync("mapFlyTo", o.OrderNumber); }
         catch { }
     }
+
+    static string WaPhone(string phone) =>
+        new string(phone.Where(char.IsDigit).ToArray());
 
     public async ValueTask DisposeAsync()
     {

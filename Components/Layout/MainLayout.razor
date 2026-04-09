@@ -6,14 +6,16 @@
     @if (Session.IsAuthenticated)
     {
         <header class="top-bar">
-            <span class="app-title">Управление заявками</span>
+            <span class="app-title">Заявки</span>
             <nav class="top-nav">
-                <a href="/orders" class="nav-link @(Nav.Uri.Contains("/orders") ? "active" : "")">Заявки</a>
-                <a href="/map"    class="nav-link @(Nav.Uri.Contains("/map")    ? "active" : "")">Карта</a>
+                <a href="/orders" class="nav-link @(Nav.Uri.Contains("/orders") ? "active" : "")">📋 Заявки</a>
+                <a href="/map"    class="nav-link @(Nav.Uri.Contains("/map")    ? "active" : "")">🗺 Карта</a>
             </nav>
-            <span class="role-badge">@Session.Role</span>
-            <button class="btn-logout" @onclick="ChangeRole">Сменить роль</button>
-            <button class="btn-logout" @onclick="Logout">Выйти</button>
+            <div class="top-bar-right">
+                <span class="role-badge">@Session.Role</span>
+                <button class="btn-logout" @onclick="ChangeRole">Роль</button>
+                <button class="btn-logout" @onclick="Logout">Выйти</button>
+            </div>
         </header>
     }
     <main>

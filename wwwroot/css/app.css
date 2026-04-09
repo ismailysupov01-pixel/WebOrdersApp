@@ -14,26 +14,28 @@ body {
 .top-bar {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     background: #1976D2;
     color: #fff;
-    padding: 12px 24px;
+    padding: 10px 20px;
+    flex-wrap: wrap;
 }
-.app-title { font-size: 1.2rem; font-weight: 700; flex: 1; }
+.app-title { font-size: 1.1rem; font-weight: 700; flex: 1; min-width: 80px; }
+.top-bar-right { display: flex; align-items: center; gap: 6px; }
 .role-badge {
     background: rgba(255,255,255,0.2);
-    padding: 4px 12px;
+    padding: 4px 10px;
     border-radius: 12px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 .btn-logout {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.6);
     color: #fff;
-    padding: 6px 14px;
+    padding: 5px 10px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
 }
 .btn-logout:hover { background: rgba(255,255,255,0.15); }
 
@@ -392,3 +394,83 @@ textarea.form-input { resize: vertical; }
     word-break: break-word;
 }
 .detail-table tr { border-bottom: 1px solid #f0f0f0; }
+
+/* ===== MOBILE TABS (map page) ===== */
+.mobile-tabs { display: none; }
+.mobile-tab {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: #e3f2fd;
+    color: #1565C0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all .2s;
+}
+.mobile-tab.active {
+    background: #fff;
+    color: #1976D2;
+    border-bottom: 3px solid #1976D2;
+}
+.mobile-hidden { display: none !important; }
+
+/* ===== RESPONSIVE MOBILE ===== */
+@media (max-width: 768px) {
+
+    /* Header */
+    .top-bar { padding: 8px 12px; gap: 6px; }
+    .app-title { font-size: 1rem; }
+    .role-badge { display: none; }
+    .top-nav { display: none; }   /* nav hidden — replaced by mobile tabs on map page */
+    .btn-logout { padding: 5px 8px; font-size: 0.78rem; }
+    main { padding: 0; }
+    main:has(.map-page) { padding: 0; }
+
+    /* Mobile tabs shown */
+    .mobile-tabs { display: flex; background: #fff; border-bottom: 1px solid #e0e0e0; }
+
+    /* Map page layout */
+    .map-page { flex-direction: column; height: calc(100vh - 44px); }
+    .map-sidebar {
+        width: 100% !important;
+        height: calc(100vh - 100px);
+        overflow-y: auto;
+        border-right: none;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    .map-main { height: calc(100vh - 100px); }
+
+    /* Orders page */
+    .orders-page { padding: 12px; }
+    .orders-header { flex-wrap: wrap; gap: 8px; }
+    .orders-header h2 { font-size: 1.1rem; }
+    .header-actions { flex-wrap: wrap; gap: 6px; }
+    .btn-refresh, .btn-add { padding: 7px 14px; font-size: 0.85rem; }
+    .date-filter-input { width: 140px !important; }
+
+    /* Table scrollable */
+    .table-wrapper { border-radius: 8px; }
+    .orders-table th, .orders-table td { padding: 8px 10px; font-size: 0.82rem; white-space: nowrap; }
+
+    /* Modals fullscreen */
+    .modal-overlay { align-items: flex-end; }
+    .modal-box {
+        min-width: unset;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        padding: 20px 16px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    /* Role select */
+    .role-select-card { padding: 32px 24px; min-width: unset; width: 90vw; }
+
+    /* Sidebar header on mobile */
+    .map-sidebar-header h3 { font-size: 0.95rem; margin-bottom: 8px; }
+    .map-order-item { padding: 10px 14px; }
+    .map-order-addr { font-size: 0.88rem; }
+}
