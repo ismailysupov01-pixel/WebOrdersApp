@@ -191,30 +191,8 @@
     async Task SelectOrder(Order o)
     {
         _selected = o;
-        // Try to fly to the order on map
-        try
-        {
-            var coords = await GetCoordsForAddress(o.Address);
-            if (coords != null)
-                await JS.InvokeVoidAsync("mapFlyTo", coords[0], coords[1]);
-        }
+        try { await JS.InvokeVoidAsync("mapFlyTo", o.OrderNumber); }
         catch { }
-    }
-
-    async Task<double[]?> GetCoordsForAddress(string address)
-    {
-        try
-        {
-            using var http = new HttpClient();
-            var q = Uri.EscapeDataString(address + ", Алматы");
-            var url = $"https://catalog.api.2gis.com/3.0/items/geocode?q={q}&fields=items.point&key=demos-api-key";
-            var json = await http.GetStringAsync(url);
-            var doc = System.Text.Json.JsonDocument.Parse(json);
-            var point = doc.RootElement
-                .GetProperty("result").GetProperty("items")[0].GetProperty("point");
-            return new[] { point.GetProperty("lon").GetDouble(), point.GetProperty("lat").GetDouble() };
-        }
-        catch { return null; }
     }
 
     public async ValueTask DisposeAsync()
