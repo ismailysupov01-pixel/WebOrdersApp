@@ -271,6 +271,15 @@ main:has(.map-page) { padding: 0; overflow: hidden; }
 .status-green { background: #388E3C; color: #fff; }
 .status-red   { background: #D32F2F; color: #fff; }
 
+/* WhatsApp link */
+.wa-link {
+    color: #25D366;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+.wa-link:hover { text-decoration: underline; }
+
 /* 2GIS link */
 .link-2gis {
     color: #1976D2;

@@ -51,7 +51,7 @@ window.mapInit = async function (orders, dotNetRef) {
             `<div style="min-width:180px;font-family:Segoe UI,sans-serif;font-size:13px">
                 <div style="font-weight:700;font-size:14px;margin-bottom:4px">№${order.orderNumber}</div>
                 <div style="font-weight:600;margin-bottom:4px">${order.address}</div>
-                ${order.phone ? '<div>📞 ' + order.phone + '</div>' : ''}
+                ${order.phone ? '<div>📞 <a href="https://wa.me/' + waPhone(order.phone) + '" target="_blank" style="color:#25D366;font-weight:600;text-decoration:none">' + order.phone + '</a></div>' : ''}
                 ${order.amount ? '<div>💰 ' + order.amount + ' ₸</div>' : ''}
                 ${order.date ? '<div>📅 ' + order.date + '</div>' : ''}
                 ${order.comments ? '<div style="margin-top:4px;color:#555">💬 ' + order.comments + '</div>' : ''}
@@ -101,4 +101,9 @@ async function geocode(address) {
 
 function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
+}
+
+function waPhone(phone) {
+    // Strip everything except digits
+    return phone.replace(/\D/g, '');
 }

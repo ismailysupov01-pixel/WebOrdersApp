@@ -67,7 +67,12 @@
                         <tr class="@RowClass(o.Status)" @onclick="() => OpenDetail(o)" style="cursor:pointer">
                             <td>@o.OrderNumber</td>
                             <td>@o.Address</td>
-                            <td>@o.Phone</td>
+                            <td @onclick:stopPropagation="true">
+                                @if (!string.IsNullOrEmpty(o.Phone))
+                                {
+                                    <a href="https://wa.me/@(WaPhone(o.Phone))" target="_blank" class="wa-link">@o.Phone</a>
+                                }
+                            </td>
                             <td>@o.Amount</td>
                             <td>@o.Date</td>
                             <td><span class="status-badge @StatusClass(o.Status)">@o.Status</span></td>
@@ -140,7 +145,15 @@
             <h3>Заявка №@_selected.OrderNumber</h3>
             <table class="detail-table">
                 <tr><th>Адрес</th><td>@_selected.Address</td></tr>
-                <tr><th>Телефон</th><td>@_selected.Phone</td></tr>
+                <tr>
+                    <th>Телефон</th>
+                    <td>
+                        @if (!string.IsNullOrEmpty(_selected.Phone))
+                        {
+                            <a href="https://wa.me/@(WaPhone(_selected.Phone))" target="_blank" class="wa-link">@_selected.Phone</a>
+                        }
+                    </td>
+                </tr>
                 <tr><th>Сумма</th><td>@_selected.Amount</td></tr>
                 <tr><th>Дата</th><td>@_selected.Date</td></tr>
                 <tr><th>Комментарии</th><td>@_selected.Comments</td></tr>
@@ -305,6 +318,9 @@
         OrderStatus.Cancelled => "status-red",
         _ => "status-blue"
     };
+
+    static string WaPhone(string phone) =>
+        new string(phone.Where(char.IsDigit).ToArray());
 
     static string FormatPhone(string input)
     {
