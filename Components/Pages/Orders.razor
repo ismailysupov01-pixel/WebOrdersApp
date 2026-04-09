@@ -13,6 +13,15 @@
     <div class="orders-header">
         <h2>Заявки</h2>
         <div class="header-actions">
+            <div class="date-filter-wrap">
+                <input type="date" value="@(_filterDate?.ToString("yyyy-MM-dd"))"
+                       @oninput="OnFilterDateChanged" class="form-input date-filter-input"
+                       title="Фильтр по дате"/>
+                @if (_filterDate.HasValue)
+                {
+                    <button class="btn-clear-date" @onclick="ClearDateFilter" title="Сбросить">✕</button>
+                }
+            </div>
             <button class="btn-refresh" @onclick="LoadOrders" disabled="@_loading">
                 @(_loading ? "Загрузка..." : "Обновить")
             </button>
@@ -32,7 +41,7 @@
     {
         <div class="loading-text">Загрузка заявок...</div>
     }
-    else if (_orders.Count == 0)
+    else if (Filtered.Count == 0)
     {
         <div class="loading-text">Заявок нет.</div>
     }
@@ -53,7 +62,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var o in _orders)
+                    @foreach (var o in Filtered)
                     {
                         <tr class="@RowClass(o.Status)" @onclick="() => OpenDetail(o)" style="cursor:pointer">
                             <td>@o.OrderNumber</td>
@@ -172,6 +181,24 @@
     List<Order>? _orders;
     bool _loading = false;
     string? _error;
+
+    // Date filter
+    DateTime? _filterDate;
+
+    List<Order> Filtered => _orders == null ? new() :
+        _filterDate.HasValue
+            ? _orders.Where(o => o.Date == _filterDate.Value.ToString("dd.MM.yyyy")).ToList()
+            : _orders;
+
+    void OnFilterDateChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var dt))
+            _filterDate = dt;
+        else
+            _filterDate = null;
+    }
+
+    void ClearDateFilter() => _filterDate = null;
 
     // Add modal
     bool _showAdd = false;

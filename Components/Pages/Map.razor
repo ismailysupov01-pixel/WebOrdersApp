@@ -1,0 +1,223 @@
+@page "/map"
+@implements IAsyncDisposable
+@inject GoogleSheetsService Sheets
+@inject UserSession Session
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@if (!Session.IsAuthenticated)
+{
+    Nav.NavigateTo("/");
+    return;
+}
+
+<div class="map-page">
+    <!-- Sidebar -->
+    <div class="map-sidebar">
+        <div class="map-sidebar-header">
+            <h3>Невыполненные заявки</h3>
+            <div class="form-group" style="margin-bottom:0">
+                <label style="font-size:0.8rem;color:#666">Фильтр по дате</label>
+                <input type="date" value="@(_filterDate?.ToString("yyyy-MM-dd"))"
+                       @oninput="OnDateChanged" class="form-input" style="padding:6px 10px"/>
+                @if (_filterDate.HasValue)
+                {
+                    <button class="btn-clear-date" @onclick="ClearDate">✕ Сбросить</button>
+                }
+            </div>
+        </div>
+
+        @if (_loading)
+        {
+            <div class="loading-text">Загрузка...</div>
+        }
+        else if (_error != null)
+        {
+            <div class="alert-error">@_error</div>
+        }
+        else if (_filtered.Count == 0)
+        {
+            <div class="loading-text">Нет заявок</div>
+        }
+        else
+        {
+            <div class="map-order-count">Заявок: @_filtered.Count</div>
+            <div class="map-order-list">
+                @foreach (var o in _filtered)
+                {
+                    <div class="map-order-item @(_selected?.RowIndex == o.RowIndex ? "active" : "")"
+                         @onclick="() => SelectOrder(o)">
+                        <div class="map-order-num">№@o.OrderNumber</div>
+                        <div class="map-order-addr">@o.Address</div>
+                        <div class="map-order-meta">@o.Date · @o.Phone</div>
+                        @if (!string.IsNullOrEmpty(o.Amount))
+                        {
+                            <div class="map-order-amount">@o.Amount ₸</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Map -->
+    <div class="map-main">
+        @if (_selected != null)
+        {
+            <div class="map-info-panel">
+                <strong>№@_selected.OrderNumber</strong> — @_selected.Address
+                @if (!string.IsNullOrEmpty(_selected.Phone)) { <span> · @_selected.Phone</span> }
+                @if (!string.IsNullOrEmpty(_selected.TwoGisLink))
+                {
+                    <a href="@_selected.TwoGisLink" target="_blank" class="link-2gis" style="margin-left:10px">Открыть в 2ГИС</a>
+                }
+                <button class="map-info-close" @onclick="() => _selected = null">✕</button>
+            </div>
+        }
+        <div id="map-container" style="width:100%;height:100%"></div>
+        @if (_geocoding)
+        {
+            <div class="map-loading-overlay">Геокодирование адресов...</div>
+        }
+    </div>
+</div>
+
+@code {
+    List<Order> _allOrders = new();
+    List<Order> _filtered = new();
+    Order? _selected;
+    bool _loading = true;
+    bool _geocoding = false;
+    string? _error;
+    DateTime? _filterDate;
+    DotNetObjectReference<Map>? _dotNetRef;
+    bool _mapReady = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) return;
+        await LoadOrders();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_loading)
+        {
+            await InitMap();
+        }
+    }
+
+    async Task LoadOrders()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            var all = await Sheets.GetOrdersAsync();
+            _allOrders = all.Where(o => o.Status == OrderStatus.New).ToList();
+            ApplyFilter();
+        }
+        catch (Exception ex) { _error = "Ошибка: " + ex.Message; }
+        finally { _loading = false; }
+    }
+
+    void ApplyFilter()
+    {
+        if (_filterDate.HasValue)
+        {
+            var dateStr = _filterDate.Value.ToString("dd.MM.yyyy");
+            _filtered = _allOrders.Where(o => o.Date == dateStr).ToList();
+        }
+        else
+        {
+            _filtered = _allOrders.ToList();
+        }
+    }
+
+    async Task OnDateChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var dt))
+            _filterDate = dt;
+        else
+            _filterDate = null;
+
+        ApplyFilter();
+        await InitMap();
+    }
+
+    async Task ClearDate()
+    {
+        _filterDate = null;
+        ApplyFilter();
+        await InitMap();
+    }
+
+    async Task InitMap()
+    {
+        if (_geocoding) return;
+        _geocoding = true;
+        StateHasChanged();
+
+        try
+        {
+            _dotNetRef?.Dispose();
+            _dotNetRef = DotNetObjectReference.Create(this);
+
+            var orders = _filtered.Select(o => new
+            {
+                orderNumber = o.OrderNumber,
+                address     = o.Address,
+                phone       = o.Phone,
+                amount      = o.Amount,
+                date        = o.Date,
+                twoGisLink  = o.TwoGisLink
+            }).ToList();
+
+            await JS.InvokeVoidAsync("mapInit", orders, _dotNetRef);
+        }
+        catch (Exception ex) { _error = "Ошибка карты: " + ex.Message; }
+        finally { _geocoding = false; StateHasChanged(); }
+    }
+
+    [JSInvokable]
+    public void OnMarkerClick(int orderNumber)
+    {
+        _selected = _filtered.FirstOrDefault(o => o.OrderNumber == orderNumber);
+        StateHasChanged();
+    }
+
+    async Task SelectOrder(Order o)
+    {
+        _selected = o;
+        // Try to fly to the order on map
+        try
+        {
+            var coords = await GetCoordsForAddress(o.Address);
+            if (coords != null)
+                await JS.InvokeVoidAsync("mapFlyTo", coords[0], coords[1]);
+        }
+        catch { }
+    }
+
+    async Task<double[]?> GetCoordsForAddress(string address)
+    {
+        try
+        {
+            using var http = new HttpClient();
+            var q = Uri.EscapeDataString(address + ", Алматы");
+            var url = $"https://catalog.api.2gis.com/3.0/items/geocode?q={q}&fields=items.point&key=demos-api-key";
+            var json = await http.GetStringAsync(url);
+            var doc = System.Text.Json.JsonDocument.Parse(json);
+            var point = doc.RootElement
+                .GetProperty("result").GetProperty("items")[0].GetProperty("point");
+            return new[] { point.GetProperty("lon").GetDouble(), point.GetProperty("lat").GetDouble() };
+        }
+        catch { return null; }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("mapDestroy"); } catch { }
+        _dotNetRef?.Dispose();
+    }
+}

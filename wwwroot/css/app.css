@@ -37,6 +37,119 @@ body {
 }
 .btn-logout:hover { background: rgba(255,255,255,0.15); }
 
+/* ===== TOP NAV ===== */
+.top-nav { display: flex; gap: 4px; }
+.nav-link {
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background .2s;
+}
+.nav-link:hover  { background: rgba(255,255,255,0.15); }
+.nav-link.active { background: rgba(255,255,255,0.25); color: #fff; font-weight: 700; }
+
+/* ===== DATE FILTER ===== */
+.date-filter-wrap { display: flex; align-items: center; gap: 4px; }
+.date-filter-input { padding: 7px 10px !important; width: auto !important; font-size: 0.88rem; }
+.btn-clear-date {
+    background: #ef9a9a; border: none; border-radius: 6px;
+    color: #fff; cursor: pointer; padding: 6px 10px; font-size: 0.85rem;
+}
+.btn-clear-date:hover { background: #e57373; }
+
+/* ===== MAP PAGE ===== */
+.map-page {
+    display: flex;
+    height: calc(100vh - 52px);
+    overflow: hidden;
+}
+
+.map-sidebar {
+    width: 320px;
+    min-width: 280px;
+    background: #fff;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.map-sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+}
+.map-sidebar-header h3 { margin: 0 0 12px; font-size: 1rem; color: #1976D2; }
+
+.map-order-count {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    color: #888;
+    background: #f9f9f9;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.map-order-list { flex: 1; overflow-y: auto; }
+
+.map-order-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+    transition: background .15s;
+}
+.map-order-item:hover  { background: #e3f2fd; }
+.map-order-item.active { background: #BBDEFB; border-left: 3px solid #1976D2; }
+
+.map-order-num   { font-weight: 700; color: #1976D2; font-size: 0.85rem; }
+.map-order-addr  { font-size: 0.9rem; margin: 2px 0; }
+.map-order-meta  { font-size: 0.78rem; color: #888; }
+.map-order-amount { font-size: 0.82rem; color: #388E3C; font-weight: 600; margin-top: 2px; }
+
+.map-main {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.map-info-panel {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    z-index: 100;
+    font-size: 0.9rem;
+    max-width: 420px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.map-info-close {
+    background: none; border: none; cursor: pointer;
+    color: #888; font-size: 1rem; margin-left: auto; padding: 0 4px;
+}
+.map-info-close:hover { color: #333; }
+
+.map-loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #1976D2;
+    font-weight: 600;
+    z-index: 200;
+}
+
 /* ===== ROLE SELECT ===== */
 .role-select-wrapper {
     display: flex;
