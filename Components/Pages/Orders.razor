@@ -117,7 +117,18 @@
             </div>
             <div class="form-group">
                 <label>Дата</label>
-                <input type="date" @bind="_dateValue" class="form-input"/>
+                <div class="date-combo">
+                    <input type="text"
+                           value="@_dateText"
+                           @oninput="OnDateTextInput"
+                           class="form-input"
+                           placeholder="дд.мм.гггг"/>
+                    <input type="date"
+                           value="@_dateValue.ToString("yyyy-MM-dd")"
+                           @oninput="OnDatePickerInput"
+                           class="date-picker-btn"
+                           title="Выбрать дату"/>
+                </div>
             </div>
             <div class="form-group">
                 <label>Комментарии</label>
@@ -218,6 +229,7 @@
     Order _newOrder = new();
     string _phoneInput = "";
     DateTime _dateValue = DateTime.Today;
+    string _dateText = DateTime.Today.ToString("dd.MM.yyyy");
     bool _saving = false;
     string? _addError;
 
@@ -242,8 +254,29 @@
         _newOrder = new Order();
         _phoneInput = "";
         _dateValue = DateTime.Today;
+        _dateText = DateTime.Today.ToString("dd.MM.yyyy");
         _addError = null;
         _showAdd = true;
+    }
+
+    void OnDateTextInput(ChangeEventArgs e)
+    {
+        _dateText = e.Value?.ToString() ?? "";
+        // Parse various formats: dd.MM.yyyy, dd/MM/yyyy, yyyy-MM-dd
+        string[] formats = { "dd.MM.yyyy", "d.M.yyyy", "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd" };
+        if (DateTime.TryParseExact(_dateText, formats,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var dt))
+            _dateValue = dt;
+    }
+
+    void OnDatePickerInput(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var dt))
+        {
+            _dateValue = dt;
+            _dateText = dt.ToString("dd.MM.yyyy");
+        }
     }
     void CloseAdd() => _showAdd = false;
 
@@ -267,7 +300,7 @@
         _addError = null;
         try
         {
-            _newOrder.Date  = _dateValue.ToString("dd.MM.yyyy");
+            _newOrder.Date  = string.IsNullOrEmpty(_dateText) ? _dateValue.ToString("dd.MM.yyyy") : _dateText;
             _newOrder.Phone = FormatPhone(_newOrder.Phone);
             await Sheets.AddOrderAsync(_newOrder);
             _showAdd = false;

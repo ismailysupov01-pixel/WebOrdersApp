@@ -18,11 +18,11 @@
             <h3>Невыполненные заявки</h3>
             <div class="form-group" style="margin-bottom:0">
                 <label style="font-size:0.8rem;color:#666">Фильтр по дате</label>
-                <input type="date" value="@(_filterDate?.ToString("yyyy-MM-dd"))"
+                <input type="date" value="@_filterDate.ToString("yyyy-MM-dd")"
                        @oninput="OnDateChanged" class="form-input" style="padding:6px 10px"/>
-                @if (_filterDate.HasValue)
+                @if (_filterActive)
                 {
-                    <button class="btn-clear-date" @onclick="ClearDate">✕ Сбросить</button>
+                    <button class="btn-clear-date" @onclick="ClearDate">✕ Все даты</button>
                 }
             </div>
         </div>
@@ -99,7 +99,8 @@
     bool _loading = true;
     bool _geocoding = false;
     string? _error;
-    DateTime? _filterDate;
+    DateTime _filterDate = DateTime.Today;   // показываем сегодня в поле
+    bool _filterActive = false;              // но фильтр не применён — показываем всё
     DotNetObjectReference<Map>? _dotNetRef;
     bool _mapInitialized = false;
 
@@ -135,9 +136,9 @@
 
     void ApplyFilter()
     {
-        if (_filterDate.HasValue)
+        if (_filterActive)
         {
-            var dateStr = _filterDate.Value.ToString("dd.MM.yyyy");
+            var dateStr = _filterDate.ToString("dd.MM.yyyy");
             _filtered = _allOrders.Where(o => o.Date == dateStr).ToList();
         }
         else
@@ -149,18 +150,21 @@
     async Task OnDateChanged(ChangeEventArgs e)
     {
         if (DateTime.TryParse(e.Value?.ToString(), out var dt))
+        {
             _filterDate = dt;
-        else
-            _filterDate = null;
-
+            _filterActive = true;   // пользователь выбрал дату — применяем фильтр
+        }
         ApplyFilter();
+        _mapInitialized = false;
         await InitMap();
     }
 
     async Task ClearDate()
     {
-        _filterDate = null;
+        _filterDate = DateTime.Today;  // сбрасываем на сегодня
+        _filterActive = false;         // но показываем все заявки
         ApplyFilter();
+        _mapInitialized = false;
         await InitMap();
     }
 

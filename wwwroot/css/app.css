@@ -60,6 +60,28 @@ body {
 }
 .btn-clear-date:hover { background: #e57373; }
 
+/* ===== DATE COMBO (text + picker) ===== */
+.date-combo { display: flex; gap: 6px; align-items: center; }
+.date-combo .form-input { flex: 1; }
+.date-picker-btn {
+    width: 36px;
+    padding: 8px 4px;
+    border: 1px solid #ccc;
+    border-radius: 7px;
+    cursor: pointer;
+    color: transparent;
+    background: #f0f4f8;
+    font-size: 0;
+}
+.date-picker-btn::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    cursor: pointer;
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    filter: invert(30%) sepia(80%) saturate(500%) hue-rotate(200deg);
+}
+
 /* ===== MAP PAGE ===== */
 .map-page {
     display: flex;
