@@ -1,0 +1,56 @@
+@page "/login"
+@inject UserSession Session
+@inject NavigationManager Nav
+@inject IConfiguration Config
+
+<div class="role-select-wrapper">
+    <div class="role-select-card">
+        <h2>Вход в систему</h2>
+        <div class="form-group">
+            <label>Пароль</label>
+            <input type="password"
+                   @bind="_password"
+                   @onkeydown="OnKeyDown"
+                   class="form-input"
+                   placeholder="Введите пароль"
+                   autofocus />
+        </div>
+        @if (_error)
+        {
+            <div class="alert-error" style="margin-bottom:12px">Неверный пароль</div>
+        }
+        <button class="btn-role operator" @onclick="CheckPassword">Войти</button>
+    </div>
+</div>
+
+@code {
+    string _password = "";
+    bool _error = false;
+
+    protected override void OnInitialized()
+    {
+        if (Session.IsPasswordVerified)
+            Nav.NavigateTo("/");
+    }
+
+    void CheckPassword()
+    {
+        var correct = Environment.GetEnvironmentVariable("APP_PASSWORD")
+                      ?? Config["AppPassword"] ?? "1234";
+        if (_password == correct)
+        {
+            Session.IsPasswordVerified = true;
+            Nav.NavigateTo("/");
+        }
+        else
+        {
+            _error = true;
+            _password = "";
+        }
+    }
+
+    void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") CheckPassword();
+    }
+}

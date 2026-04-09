@@ -2,6 +2,7 @@ namespace WebOrdersApp.Services;
 
 public class UserSession
 {
-    public string Role { get; set; } = ""; // "Оператор" or "Исполнитель"
-    public bool IsAuthenticated => !string.IsNullOrEmpty(Role);
+    public bool IsPasswordVerified { get; set; } = false;
+    public string Role { get; set; } = "";
+    public bool IsAuthenticated => IsPasswordVerified && !string.IsNullOrEmpty(Role);
 }

@@ -17,7 +17,9 @@
 @code {
     protected override void OnInitialized()
     {
-        if (Session.IsAuthenticated)
+        if (!Session.IsPasswordVerified)
+            Nav.NavigateTo("/login");
+        else if (!string.IsNullOrEmpty(Session.Role))
             Nav.NavigateTo("/orders");
     }
 
