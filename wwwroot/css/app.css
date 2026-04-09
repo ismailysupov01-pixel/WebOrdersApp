@@ -103,10 +103,11 @@ body {
 .map-order-item:hover  { background: #e3f2fd; }
 .map-order-item.active { background: #BBDEFB; border-left: 3px solid #1976D2; }
 
-.map-order-num   { font-weight: 700; color: #1976D2; font-size: 0.85rem; }
-.map-order-addr  { font-size: 0.9rem; margin: 2px 0; }
-.map-order-meta  { font-size: 0.78rem; color: #888; }
-.map-order-amount { font-size: 0.82rem; color: #388E3C; font-weight: 600; margin-top: 2px; }
+.map-order-num     { font-weight: 700; color: #1976D2; font-size: 0.85rem; }
+.map-order-addr    { font-size: 0.95rem; font-weight: 700; margin: 3px 0; color: #111; }
+.map-order-meta    { font-size: 0.78rem; color: #888; }
+.map-order-amount  { font-size: 0.82rem; color: #388E3C; font-weight: 600; margin-top: 2px; }
+.map-order-comment { font-size: 0.8rem; color: #555; margin-top: 3px; font-style: italic; }
 
 .map-main {
     flex: 1;

@@ -48,12 +48,13 @@ window.mapInit = async function (orders, dotNetRef) {
         const marker = L.marker([coords[0], coords[1]]).addTo(_map);
 
         marker.bindPopup(
-            `<div style="min-width:160px">
-                <b>№${order.orderNumber}</b><br>
-                ${order.address}<br>
-                ${order.phone ? '📞 ' + order.phone + '<br>' : ''}
-                ${order.amount ? '💰 ' + order.amount + ' ₸<br>' : ''}
-                ${order.date ? '📅 ' + order.date : ''}
+            `<div style="min-width:180px;font-family:Segoe UI,sans-serif;font-size:13px">
+                <div style="font-weight:700;font-size:14px;margin-bottom:4px">№${order.orderNumber}</div>
+                <div style="font-weight:600;margin-bottom:4px">${order.address}</div>
+                ${order.phone ? '<div>📞 ' + order.phone + '</div>' : ''}
+                ${order.amount ? '<div>💰 ' + order.amount + ' ₸</div>' : ''}
+                ${order.date ? '<div>📅 ' + order.date + '</div>' : ''}
+                ${order.comments ? '<div style="margin-top:4px;color:#555">💬 ' + order.comments + '</div>' : ''}
              </div>`
         );
 
