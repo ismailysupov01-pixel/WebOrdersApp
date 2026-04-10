@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject UserSession Session
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <div class="app-shell">
     @if (Session.IsAuthenticated)
@@ -12,8 +13,7 @@
                 <a href="/map"    class="nav-link @(Nav.Uri.Contains("/map")    ? "active" : "")">🗺 Карта</a>
             </nav>
             <div class="top-bar-right">
-                <span class="role-badge">@Session.Role</span>
-                <button class="btn-logout" @onclick="ChangeRole">Роль</button>
+                <span class="user-name-badge" title="@Session.Role">@Session.Name</span>
                 <button class="btn-logout" @onclick="Logout">Выйти</button>
             </div>
         </header>
@@ -24,15 +24,12 @@
 </div>
 
 @code {
-    void ChangeRole()
+    async Task Logout()
     {
+        await JS.InvokeVoidAsync("clearSession");
         Session.Role = "";
-        Nav.NavigateTo("/", forceLoad: false);
-    }
-
-    void Logout()
-    {
-        Session.Role = "";
+        Session.Name = "";
+        Session.Login = "";
         Session.IsPasswordVerified = false;
         Nav.NavigateTo("/login");
     }

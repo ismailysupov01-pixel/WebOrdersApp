@@ -1,7 +1,9 @@
 @page "/orders"
+@implements IAsyncDisposable
 @inject GoogleSheetsService Sheets
 @inject UserSession Session
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 @if (!Session.IsAuthenticated)
 {
@@ -105,9 +107,11 @@
             </div>
             <div class="form-group">
                 <label>Телефон</label>
-                <input value="@_phoneInput"
+                <input id="phone-mask-input" type="tel"
+                       value="@_phoneInput"
                        @oninput="OnPhoneInput"
-                       class="form-input" placeholder="+7"/>
+                       class="form-input" placeholder="+7 ___ ___ __ __"
+                       maxlength="16"/>
             </div>
             <div class="form-group">
                 <label>Сумма</label>
@@ -238,13 +242,46 @@
     string _selectedStatus = "";
     string? _detailError;
 
+    Timer? _pollTimer;
+    int _lastOrderCount = 0;
+
     protected override async Task OnInitializedAsync() => await LoadOrders();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        // Start polling for new orders (every 30s)
+        _pollTimer = new Timer(async _ => await InvokeAsync(PollOrders),
+            null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    async Task PollOrders()
+    {
+        try
+        {
+            var orders = await Sheets.GetOrdersAsync();
+            if (_lastOrderCount > 0 && orders.Count > _lastOrderCount)
+                await JS.InvokeVoidAsync("showNotify", "Новая заявка!", $"Добавлено заявок: {orders.Count - _lastOrderCount}");
+            _lastOrderCount = orders.Count;
+            if (_orders != null) { _orders = orders; StateHasChanged(); }
+        }
+        catch { }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_pollTimer != null) await _pollTimer.DisposeAsync();
+    }
 
     async Task LoadOrders()
     {
         _loading = true;
         _error = null;
-        try { _orders = await Sheets.GetOrdersAsync(); }
+        try
+        {
+            _orders = await Sheets.GetOrdersAsync();
+            _lastOrderCount = _orders?.Count ?? 0;
+        }
         catch (Exception ex) { _error = "Ошибка загрузки: " + ex.Message; }
         finally { _loading = false; }
     }
@@ -329,7 +366,8 @@
         _detailError = null;
         try
         {
-            await Sheets.UpdateStatusAsync(_selected.RowIndex, _selectedStatus);
+            var executorName = Session.Role == "Исполнитель" ? Session.Name : "";
+            await Sheets.UpdateStatusAsync(_selected.RowIndex, _selectedStatus, executorName);
             _selected.Status = _selectedStatus;
             CloseDetail();
             await LoadOrders();

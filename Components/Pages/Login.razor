@@ -2,55 +2,132 @@
 @inject UserSession Session
 @inject NavigationManager Nav
 @inject IConfiguration Config
+@inject IJSRuntime JS
 
 <div class="role-select-wrapper">
-    <div class="role-select-card">
+    <div class="role-select-card login-card">
         <h2>Вход в систему</h2>
-        <div class="form-group">
-            <label>Пароль</label>
-            <input type="password"
-                   @bind="_password"
-                   @onkeydown="OnKeyDown"
-                   class="form-input"
-                   placeholder="Введите пароль"
-                   autofocus />
-        </div>
-        @if (_error)
+
+        @if (_step == 1)
         {
-            <div class="alert-error" style="margin-bottom:12px">Неверный пароль</div>
+            <!-- Step 1: login + password -->
+            <div class="form-group">
+                <label>Логин</label>
+                <input @bind="_login" class="form-input" placeholder="Введите логин" autocomplete="username"/>
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" @bind="_password" @onkeydown="OnKeyDown"
+                       class="form-input" placeholder="Введите пароль" autocomplete="current-password"/>
+            </div>
+            @if (_error != null)
+            {
+                <div class="alert-error" style="margin-bottom:12px">@_error</div>
+            }
+            <button class="btn-role operator" @onclick="CheckCredentials">Войти</button>
         }
-        <button class="btn-role operator" @onclick="CheckPassword">Войти</button>
+        else
+        {
+            <!-- Step 2: enter name -->
+            <div class="login-role-badge">@_detectedRole</div>
+            <div class="form-group">
+                <label>Ваше ФИО</label>
+                <input @bind="_name" @onkeydown="OnKeyDownName"
+                       class="form-input" placeholder="Фамилия Имя Отчество" autofocus/>
+            </div>
+            @if (_nameError != null)
+            {
+                <div class="alert-error" style="margin-bottom:12px">@_nameError</div>
+            }
+            <button class="btn-role operator" @onclick="ConfirmName">Продолжить</button>
+            <button class="btn-cancel-login" @onclick="() => _step = 1">← Назад</button>
+        }
     </div>
 </div>
 
 @code {
+    int _step = 1;
+    string _login = "";
     string _password = "";
-    bool _error = false;
+    string _name = "";
+    string _detectedRole = "";
+    string? _error;
+    string? _nameError;
 
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (Session.IsPasswordVerified)
-            Nav.NavigateTo("/");
-    }
+        if (!firstRender) return;
 
-    void CheckPassword()
-    {
-        var correct = Environment.GetEnvironmentVariable("APP_PASSWORD")
-                      ?? Config["AppPassword"] ?? "1234";
-        if (_password == correct)
+        // Check localStorage for saved session
+        var session = await JS.InvokeAsync<SessionData?>("loadSession");
+        if (session != null && !string.IsNullOrEmpty(session.Role) && !string.IsNullOrEmpty(session.Name))
         {
             Session.IsPasswordVerified = true;
+            Session.Role = session.Role;
+            Session.Name = session.Name;
+            Session.Login = session.Login;
             Nav.NavigateTo("/");
-        }
-        else
-        {
-            _error = true;
-            _password = "";
         }
     }
 
-    void OnKeyDown(KeyboardEventArgs e)
+    void CheckCredentials()
     {
-        if (e.Key == "Enter") CheckPassword();
+        _error = null;
+        var opLogin    = GetEnv("OPERATOR_LOGIN",    "operator");
+        var opPass     = GetEnv("OPERATOR_PASSWORD", GetEnv("APP_PASSWORD", "1234"));
+        var exLogin    = GetEnv("EXECUTOR_LOGIN",    "executor");
+        var exPass     = GetEnv("EXECUTOR_PASSWORD", GetEnv("APP_PASSWORD", "1234"));
+
+        if (_login == opLogin && _password == opPass)
+            _detectedRole = "Оператор";
+        else if (_login == exLogin && _password == exPass)
+            _detectedRole = "Исполнитель";
+        else
+        {
+            _error = "Неверный логин или пароль";
+            return;
+        }
+
+        _step = 2;
+    }
+
+    async Task ConfirmName()
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _nameError = "Введите ваше ФИО";
+            return;
+        }
+
+        Session.IsPasswordVerified = true;
+        Session.Role = _detectedRole;
+        Session.Name = _name.Trim();
+        Session.Login = _login;
+
+        // Save to localStorage
+        await JS.InvokeVoidAsync("saveSession", new SessionData
+        {
+            Role = Session.Role,
+            Name = Session.Name,
+            Login = Session.Login
+        });
+
+        // Request notification permission
+        await JS.InvokeAsync<bool>("requestNotifyPermission");
+
+        Nav.NavigateTo("/");
+    }
+
+    void OnKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") CheckCredentials(); }
+    void OnKeyDownName(KeyboardEventArgs e) { if (e.Key == "Enter") _ = ConfirmName(); }
+
+    static string GetEnv(string key, string def) =>
+        Environment.GetEnvironmentVariable(key) ?? def;
+
+    class SessionData
+    {
+        public string Role  { get; set; } = "";
+        public string Name  { get; set; } = "";
+        public string Login { get; set; } = "";
     }
 }

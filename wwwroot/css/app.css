@@ -22,6 +22,16 @@ body {
 }
 .app-title { font-size: 1.1rem; font-weight: 700; flex: 1; min-width: 80px; }
 .top-bar-right { display: flex; align-items: center; gap: 6px; }
+.user-name-badge {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .role-badge {
     background: rgba(255,255,255,0.2);
     padding: 4px 10px;
@@ -191,6 +201,30 @@ body {
     text-align: center;
     min-width: 320px;
 }
+.login-card { min-width: 340px; }
+.login-role-badge {
+    background: #e3f2fd;
+    color: #1565C0;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 18px;
+    text-align: center;
+}
+.btn-cancel-login {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background: transparent;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    color: #555;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.btn-cancel-login:hover { background: #f5f5f5; }
 .role-select-card h2 {
     margin: 0 0 32px;
     font-size: 1.5rem;

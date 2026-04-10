@@ -10,6 +10,7 @@ public class Order
     public string Date { get; set; } = "";
     public string Comments { get; set; } = "";
     public string TwoGisLink { get; set; } = "";
+    public string Executor { get; set; } = "";
     public string Status { get; set; } = OrderStatus.New;
 }
 

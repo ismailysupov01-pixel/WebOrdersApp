@@ -18,7 +18,7 @@
         <button class="mobile-tab @(!_mobileMapView ? "active" : "")" @onclick="() => _mobileMapView = false">
             📋 Список (@_filtered.Count)
         </button>
-        <button class="mobile-tab @(_mobileMapView ? "active" : "")" @onclick="() => _mobileMapView = true">
+        <button class="mobile-tab @(_mobileMapView ? "active" : "")" @onclick="ShowMap">
             🗺 Карта
         </button>
     </div>
@@ -211,12 +211,25 @@
         StateHasChanged();
     }
 
+    async Task ShowMap()
+    {
+        _mobileMapView = true;
+        StateHasChanged();
+        await Task.Delay(150);
+        try { await JS.InvokeVoidAsync("mapInvalidateSize"); } catch { }
+        if (!_mapInitialized && !_loading)
+        {
+            _mapInitialized = true;
+            await InitMap();
+        }
+    }
+
     async Task SelectOrder(Order o)
     {
         _selected = o;
-        _mobileMapView = true;
-        try { await JS.InvokeVoidAsync("mapFlyTo", o.OrderNumber); }
-        catch { }
+        await ShowMap();
+        await Task.Delay(200);
+        try { await JS.InvokeVoidAsync("mapFlyTo", o.OrderNumber); } catch { }
     }
 
     static string WaPhone(string phone) =>
