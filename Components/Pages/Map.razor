@@ -13,9 +13,9 @@
 
 <div class="map-page">
 
-    <!-- Mobile tab switcher -->
+    <!-- Mobile tab switcher (visible only on mobile) -->
     <div class="mobile-tabs">
-        <button class="mobile-tab @(!_mobileMapView ? "active" : "")" @onclick="() => _mobileMapView = false">
+        <button class="mobile-tab @(!_mobileMapView ? "active" : "")" @onclick="ShowList">
             📋 Список (@_filtered.Count)
         </button>
         <button class="mobile-tab @(_mobileMapView ? "active" : "")" @onclick="ShowMap">
@@ -23,14 +23,17 @@
         </button>
     </div>
 
-    <!-- Sidebar -->
+    <!-- Sidebar: always visible on desktop, toggleable on mobile -->
     <div class="map-sidebar @(_mobileMapView ? "mobile-hidden" : "")">
         <div class="map-sidebar-header">
             <h3>Невыполненные заявки</h3>
             <div class="form-group" style="margin-bottom:0">
                 <label style="font-size:0.8rem;color:#666">Фильтр по дате</label>
-                <input type="date" value="@_filterDate.ToString("yyyy-MM-dd")"
-                       @oninput="OnDateChanged" class="form-input" style="padding:6px 10px"/>
+                <input type="date"
+                       value="@(_filterDate.ToString("yyyy-MM-dd"))"
+                       @oninput="OnDateChanged"
+                       class="form-input"
+                       style="padding:6px 10px"/>
                 @if (_filterActive)
                 {
                     <button class="btn-clear-date" @onclick="ClearDate">✕ Все даты</button>
@@ -48,7 +51,7 @@
         }
         else if (_filtered.Count == 0)
         {
-            <div class="loading-text">Нет заявок</div>
+            <div class="loading-text">Нет заявок на выбранную дату</div>
         }
         else
         {
@@ -64,7 +67,7 @@
                             @o.Date ·
                             @if (!string.IsNullOrEmpty(o.Phone))
                             {
-                                <a href="https://wa.me/@(WaPhone(o.Phone))" target="_blank" class="wa-link" @onclick:stopPropagation="true">@o.Phone</a>
+                                <a href="@("https://wa.me/" + WaPhone(o.Phone))" target="_blank" class="wa-link" @onclick:stopPropagation="true">@o.Phone</a>
                             }
                         </div>
                         @if (!string.IsNullOrEmpty(o.Amount))
@@ -81,7 +84,7 @@
         }
     </div>
 
-    <!-- Map -->
+    <!-- Map: always visible on desktop, toggleable on mobile -->
     <div class="map-main @(!_mobileMapView ? "mobile-hidden" : "")">
         @if (_selected != null)
         {
@@ -89,7 +92,7 @@
                 <strong>№@_selected.OrderNumber</strong> — @_selected.Address
                 @if (!string.IsNullOrEmpty(_selected.Phone))
                 {
-                    <span> · <a href="https://wa.me/@(WaPhone(_selected.Phone))" target="_blank" class="wa-link">@_selected.Phone</a></span>
+                    <span> · <a href="@("https://wa.me/" + WaPhone(_selected.Phone))" target="_blank" class="wa-link">@_selected.Phone</a></span>
                 }
                 <button class="map-info-close" @onclick="() => _selected = null">✕</button>
             </div>
@@ -104,14 +107,14 @@
 
 @code {
     List<Order> _allOrders = new();
-    List<Order> _filtered = new();
+    List<Order> _filtered  = new();
     Order? _selected;
-    bool _loading = true;
+    bool _loading  = true;
     bool _geocoding = false;
     string? _error;
     DateTime _filterDate = DateTime.Today;
-    bool _filterActive = true;
-    bool _mobileMapView = true;
+    bool _filterActive   = true;   // по умолчанию — сегодня
+    bool _mobileMapView  = false;  // на мобильном сначала показываем список
     DotNetObjectReference<Map>? _dotNetRef;
     bool _mapInitialized = false;
 
@@ -123,6 +126,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Инициализируем карту как только данные загружены и DOM готов
         if (!_mapInitialized && !_loading && _error == null)
         {
             _mapInitialized = true;
@@ -141,20 +145,18 @@
             ApplyFilter();
         }
         catch (Exception ex) { _error = "Ошибка: " + ex.Message; }
-        finally { _loading = false; }
+        finally
+        {
+            _loading = false;
+            StateHasChanged(); // явно вызываем перерендер, чтобы OnAfterRenderAsync инициализировал карту
+        }
     }
 
     void ApplyFilter()
     {
-        if (_filterActive)
-        {
-            var dateStr = _filterDate.ToString("dd.MM.yyyy");
-            _filtered = _allOrders.Where(o => o.Date == dateStr).ToList();
-        }
-        else
-        {
-            _filtered = _allOrders.ToList();
-        }
+        _filtered = _filterActive
+            ? _allOrders.Where(o => o.Date == _filterDate.ToString("dd.MM.yyyy")).ToList()
+            : _allOrders.ToList();
     }
 
     async Task OnDateChanged(ChangeEventArgs e)
@@ -208,6 +210,12 @@
     {
         _selected = _filtered.FirstOrDefault(o => o.OrderNumber == orderNumber);
         _mobileMapView = true;
+        StateHasChanged();
+    }
+
+    void ShowList()
+    {
+        _mobileMapView = false;
         StateHasChanged();
     }
 
