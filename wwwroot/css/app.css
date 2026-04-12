@@ -149,6 +149,11 @@ body {
     overflow: hidden;
 }
 
+#map-container {
+    position: absolute;
+    inset: 0;
+}
+
 .map-info-panel {
     position: absolute;
     top: 12px;

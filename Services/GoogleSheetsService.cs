@@ -72,14 +72,14 @@ public class GoogleSheetsService
             rowIndex++;
         }
 
-        // Сортируем по дате (новые сверху)
+        // Сортируем по дате по возрастанию (старые сверху, новые снизу)
         orders.Sort((a, b) =>
         {
             bool da = TryParseDate(a.Date, out var dtA);
             bool db = TryParseDate(b.Date, out var dtB);
-            if (da && db) return dtB.CompareTo(dtA);
-            if (da) return 1;
-            if (db) return -1;
+            if (da && db) return dtA.CompareTo(dtB);
+            if (da) return -1;
+            if (db) return 1;
             return 0;
         });
 
@@ -105,8 +105,8 @@ public class GoogleSheetsService
         await req.ExecuteAsync();
     }
 
-    // Обновляет статус и ФИО исполнителя
-    public async Task UpdateStatusAsync(int rowIndex, string newStatus, string executorName = "")
+    // Обновляет статус, ФИО исполнителя и (опционально) дату
+    public async Task UpdateStatusAsync(int rowIndex, string newStatus, string executorName = "", string newDate = "")
     {
         // E = статус, H = исполнитель
         var range = $"{_sheetName}!E{rowIndex}:H{rowIndex}";
@@ -120,6 +120,19 @@ public class GoogleSheetsService
         var req = _service!.Spreadsheets.Values.Update(body, _spreadsheetId, range);
         req.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
         await req.ExecuteAsync();
+
+        // Обновляем дату в столбце D, если она изменилась
+        if (!string.IsNullOrEmpty(newDate))
+        {
+            var dateRange = $"{_sheetName}!D{rowIndex}";
+            var dateBody = new ValueRange
+            {
+                Values = new List<IList<object>> { new List<object> { newDate } }
+            };
+            var dateReq = _service!.Spreadsheets.Values.Update(dateBody, _spreadsheetId, dateRange);
+            dateReq.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+            await dateReq.ExecuteAsync();
+        }
     }
 
     public static string Build2GisLink(string address) =>

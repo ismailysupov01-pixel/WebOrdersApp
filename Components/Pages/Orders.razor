@@ -184,6 +184,21 @@
             </table>
 
             <div class="form-group" style="margin-top:16px">
+                <label>Дата</label>
+                <div class="date-combo">
+                    <input type="text"
+                           value="@_selectedDateText"
+                           @oninput="OnDetailDateTextInput"
+                           class="form-input"
+                           placeholder="дд.мм.гггг"/>
+                    <input type="date"
+                           value="@_selectedDateValue.ToString("yyyy-MM-dd")"
+                           @oninput="OnDetailDatePickerInput"
+                           class="date-picker-btn"
+                           title="Выбрать дату"/>
+                </div>
+            </div>
+            <div class="form-group">
                 <label>Статус</label>
                 <select @bind="_selectedStatus" class="form-input">
                     <option>@OrderStatus.New</option>
@@ -240,6 +255,8 @@
     // Detail modal
     Order? _selected;
     string _selectedStatus = "";
+    string _selectedDateText = "";
+    DateTime _selectedDateValue = DateTime.Today;
     string? _detailError;
 
     Timer? _pollTimer;
@@ -354,21 +371,51 @@
     {
         _selected = o;
         _selectedStatus = o.Status;
+        _selectedDateText = o.Date;
+        if (DateTime.TryParseExact(o.Date, "dd.MM.yyyy",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var dt))
+            _selectedDateValue = dt;
+        else
+            _selectedDateValue = DateTime.Today;
         _detailError = null;
     }
     void CloseDetail() => _selected = null;
 
+    void OnDetailDateTextInput(ChangeEventArgs e)
+    {
+        _selectedDateText = e.Value?.ToString() ?? "";
+        string[] formats = { "dd.MM.yyyy", "d.M.yyyy", "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd" };
+        if (DateTime.TryParseExact(_selectedDateText, formats,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var dt))
+            _selectedDateValue = dt;
+    }
+
+    void OnDetailDatePickerInput(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var dt))
+        {
+            _selectedDateValue = dt;
+            _selectedDateText = dt.ToString("dd.MM.yyyy");
+        }
+    }
+
     async Task SaveStatus()
     {
         if (_selected == null) return;
-        if (_selectedStatus == _selected.Status) { CloseDetail(); return; }
+        bool statusChanged = _selectedStatus != _selected.Status;
+        bool dateChanged   = !string.IsNullOrEmpty(_selectedDateText) && _selectedDateText != _selected.Date;
+        if (!statusChanged && !dateChanged) { CloseDetail(); return; }
         _saving = true;
         _detailError = null;
         try
         {
             var executorName = Session.Role == "Исполнитель" ? Session.Name : "";
-            await Sheets.UpdateStatusAsync(_selected.RowIndex, _selectedStatus, executorName);
+            var newDate = dateChanged ? _selectedDateText : "";
+            await Sheets.UpdateStatusAsync(_selected.RowIndex, _selectedStatus, executorName, newDate);
             _selected.Status = _selectedStatus;
+            if (dateChanged) _selected.Date = _selectedDateText;
             CloseDetail();
             await LoadOrders();
         }
