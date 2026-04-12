@@ -448,7 +448,7 @@ textarea.form-input { resize: vertical; }
     color: #1976D2;
     border-bottom: 3px solid #1976D2;
 }
-.mobile-hidden { display: none !important; }
+/* mobile-hidden only works on small screens — on desktop both panels are always visible */
 
 /* ===== RESPONSIVE MOBILE ===== */
 @media (max-width: 768px) {
@@ -464,6 +464,9 @@ textarea.form-input { resize: vertical; }
 
     /* Mobile tabs shown */
     .mobile-tabs { display: flex; background: #fff; border-bottom: 1px solid #e0e0e0; }
+
+    /* Mobile tab visibility */
+    .mobile-hidden { display: none !important; }
 
     /* Map page layout */
     .map-page { flex-direction: column; height: calc(100vh - 44px); }
