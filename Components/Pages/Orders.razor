@@ -110,7 +110,7 @@
                 <input id="phone-mask-input" type="tel"
                        value="@_phoneInput"
                        @oninput="OnPhoneInput"
-                       class="form-input" placeholder="+7 ___ ___ __ __"
+                       class="form-input" placeholder="+7"
                        maxlength="16"/>
             </div>
             <div class="form-group">
@@ -339,10 +339,13 @@
             // Запуск опроса новых заявок каждые 30 сек
             _pollTimer = new Timer(async _ => await InvokeAsync(PollOrders),
                 null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-            // Маска на поле телефона при добавлении заявки
+        }
+        // Маска телефона в модалке "Новая заявка" — вызываем каждый рендер пока открыта
+        if (_showAdd)
+        {
             try { await JS.InvokeVoidAsync("initPhoneMask", "phone-mask-input"); } catch { }
         }
-        // Маска на поле телефона в модалке редактирования (для оператора)
+        // Маска телефона в модалке редактирования (оператор)
         if (_selected != null && Session.Role == "Оператор")
         {
             try { await JS.InvokeVoidAsync("initPhoneMask", "edit-phone-input"); } catch { }
