@@ -143,7 +143,7 @@
                 <div class="alert-error">@_addError</div>
             }
             <div class="modal-buttons">
-                <button class="btn-save" @onclick="SaveOrder" disabled="@_saving">
+                <button class="btn-save" @onclick="AddOrder" disabled="@_saving">
                     @(_saving ? "Сохранение..." : "Сохранить")
                 </button>
                 <button class="btn-cancel" @onclick="CloseAdd">Отмена</button>
@@ -152,68 +152,131 @@
     </div>
 }
 
-<!-- Detail / Status Modal -->
+<!-- Detail / Edit Modal -->
 @if (_selected != null)
 {
     <div class="modal-overlay" @onclick="CloseDetail">
         <div class="modal-box" @onclick:stopPropagation="true">
             <h3>Заявка №@_selected.OrderNumber</h3>
-            <table class="detail-table">
-                <tr><th>Адрес</th><td>@_selected.Address</td></tr>
-                <tr>
-                    <th>Телефон</th>
-                    <td>
-                        @if (!string.IsNullOrEmpty(_selected.Phone))
-                        {
-                            <a href="https://wa.me/@(WaPhone(_selected.Phone))" target="_blank" class="wa-link">@_selected.Phone</a>
-                        }
-                    </td>
-                </tr>
-                <tr><th>Сумма</th><td>@_selected.Amount</td></tr>
-                <tr><th>Дата</th><td>@_selected.Date</td></tr>
-                <tr><th>Комментарии</th><td>@_selected.Comments</td></tr>
-                <tr>
-                    <th>2ГИС</th>
-                    <td>
-                        @if (!string.IsNullOrEmpty(_selected.TwoGisLink))
-                        {
-                            <a href="@_selected.TwoGisLink" target="_blank" class="link-2gis">Открыть карту</a>
-                        }
-                    </td>
-                </tr>
-            </table>
 
-            <div class="form-group" style="margin-top:16px">
-                <label>Дата</label>
-                <div class="date-combo">
-                    <input type="text"
-                           value="@_selectedDateText"
-                           @oninput="OnDetailDateTextInput"
-                           class="form-input"
-                           placeholder="дд.мм.гггг"/>
-                    <input type="date"
-                           value="@_selectedDateValue.ToString("yyyy-MM-dd")"
-                           @oninput="OnDetailDatePickerInput"
-                           class="date-picker-btn"
-                           title="Выбрать дату"/>
+            @if (Session.Role == "Оператор")
+            {
+                <!-- Оператор: все поля редактируемые -->
+                <div class="form-group">
+                    <label>Адрес</label>
+                    <input type="text" @bind="_editAddress" class="form-input" placeholder="Адрес"/>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Статус</label>
-                <select @bind="_selectedStatus" class="form-input">
-                    <option>@OrderStatus.New</option>
-                    <option>@OrderStatus.Completed</option>
-                    <option>@OrderStatus.Cancelled</option>
-                </select>
-            </div>
+                <div class="form-group">
+                    <label>Телефон</label>
+                    <input type="text" @bind="_editPhone" class="form-input" placeholder="+7..."/>
+                </div>
+                <div class="form-group">
+                    <label>Сумма</label>
+                    <input type="text" @bind="_editAmount" class="form-input" placeholder="0"/>
+                </div>
+                <div class="form-group">
+                    <label>Дата</label>
+                    <div class="date-combo">
+                        <input type="text"
+                               value="@_selectedDateText"
+                               @oninput="OnDetailDateTextInput"
+                               class="form-input"
+                               placeholder="дд.мм.гггг"/>
+                        <input type="date"
+                               value="@(_selectedDateValue.ToString("yyyy-MM-dd"))"
+                               @oninput="OnDetailDatePickerInput"
+                               class="date-picker-btn"
+                               title="Выбрать дату"/>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Комментарии</label>
+                    <textarea @bind="_editComments" class="form-input" rows="3" placeholder="Комментарии..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Статус</label>
+                    <select @bind="_selectedStatus" class="form-input">
+                        <option>@OrderStatus.New</option>
+                        <option>@OrderStatus.Completed</option>
+                        <option>@OrderStatus.Cancelled</option>
+                    </select>
+                </div>
+                @if (!string.IsNullOrEmpty(_selected.TwoGisLink))
+                {
+                    <div style="margin-top:6px">
+                        <a href="@_selected.TwoGisLink" target="_blank" class="link-2gis">🗺 Открыть в 2ГИС</a>
+                    </div>
+                }
+            }
+            else
+            {
+                <!-- Исполнитель: только просмотр + редактирование статуса и даты -->
+                <table class="detail-table">
+                    <tr><th>Адрес</th><td>@_selected.Address</td></tr>
+                    <tr>
+                        <th>Телефон</th>
+                        <td>
+                            @if (!string.IsNullOrEmpty(_selected.Phone))
+                            {
+                                <a href="@("https://wa.me/" + WaPhone(_selected.Phone))" target="_blank" class="wa-link">@_selected.Phone</a>
+                            }
+                        </td>
+                    </tr>
+                    <tr><th>Сумма</th><td>@_selected.Amount</td></tr>
+                    <tr><th>Дата</th><td>@_selected.Date</td></tr>
+                    <tr><th>Комментарии</th><td>@_selected.Comments</td></tr>
+                    <tr>
+                        <th>2ГИС</th>
+                        <td>
+                            @if (!string.IsNullOrEmpty(_selected.TwoGisLink))
+                            {
+                                <a href="@_selected.TwoGisLink" target="_blank" class="link-2gis">Открыть карту</a>
+                            }
+                        </td>
+                    </tr>
+                </table>
+                <div class="form-group" style="margin-top:16px">
+                    <label>Дата</label>
+                    <div class="date-combo">
+                        <input type="text"
+                               value="@_selectedDateText"
+                               @oninput="OnDetailDateTextInput"
+                               class="form-input"
+                               placeholder="дд.мм.гггг"/>
+                        <input type="date"
+                               value="@(_selectedDateValue.ToString("yyyy-MM-dd"))"
+                               @oninput="OnDetailDatePickerInput"
+                               class="date-picker-btn"
+                               title="Выбрать дату"/>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Статус</label>
+                    <select @bind="_selectedStatus" class="form-input">
+                        <option>@OrderStatus.New</option>
+                        <option>@OrderStatus.Completed</option>
+                        <option>@OrderStatus.Cancelled</option>
+                    </select>
+                </div>
+            }
+
             @if (_detailError != null)
             {
                 <div class="alert-error">@_detailError</div>
             }
             <div class="modal-buttons">
-                <button class="btn-save" @onclick="SaveStatus" disabled="@_saving">
-                    @(_saving ? "Сохранение..." : "Сохранить статус")
-                </button>
+                @if (Session.Role == "Оператор")
+                {
+                    <button class="btn-save" @onclick="SaveOrder" disabled="@_saving">
+                        @(_saving ? "Сохранение..." : "💾 Сохранить изменения")
+                    </button>
+                }
+                else
+                {
+                    <button class="btn-save" @onclick="SaveStatus" disabled="@_saving">
+                        @(_saving ? "Сохранение..." : "Сохранить статус")
+                    </button>
+                }
                 <button class="btn-cancel" @onclick="CloseDetail">Закрыть</button>
             </div>
         </div>
@@ -254,9 +317,14 @@
 
     // Detail modal
     Order? _selected;
-    string _selectedStatus = "";
+    string _selectedStatus   = "";
     string _selectedDateText = "";
     DateTime _selectedDateValue = DateTime.Today;
+    // Поля редактирования для оператора
+    string _editAddress  = "";
+    string _editPhone    = "";
+    string _editAmount   = "";
+    string _editComments = "";
     string? _detailError;
 
     Timer? _pollTimer;
@@ -343,7 +411,7 @@
         _newOrder.Phone = FormatPhone(_phoneInput);
     }
 
-    async Task SaveOrder()
+    async Task AddOrder()
     {
         if (string.IsNullOrWhiteSpace(_newOrder.Address))
         {
@@ -370,7 +438,7 @@
     void OpenDetail(Order o)
     {
         _selected = o;
-        _selectedStatus = o.Status;
+        _selectedStatus   = o.Status;
         _selectedDateText = o.Date;
         if (DateTime.TryParseExact(o.Date, "dd.MM.yyyy",
             System.Globalization.CultureInfo.InvariantCulture,
@@ -378,7 +446,12 @@
             _selectedDateValue = dt;
         else
             _selectedDateValue = DateTime.Today;
-        _detailError = null;
+        // Поля для редактирования оператором
+        _editAddress  = o.Address;
+        _editPhone    = o.Phone;
+        _editAmount   = o.Amount;
+        _editComments = o.Comments;
+        _detailError  = null;
     }
     void CloseDetail() => _selected = null;
 
@@ -401,6 +474,34 @@
         }
     }
 
+    // Сохранение для оператора: все поля заявки
+    async Task SaveOrder()
+    {
+        if (_selected == null) return;
+        if (string.IsNullOrWhiteSpace(_editAddress))
+        {
+            _detailError = "Укажите адрес.";
+            return;
+        }
+        _saving = true;
+        _detailError = null;
+        try
+        {
+            var phone = FormatPhone(_editPhone);
+            var date  = string.IsNullOrEmpty(_selectedDateText) ? _selected.Date : _selectedDateText;
+            await Sheets.UpdateOrderAsync(
+                _selected.RowIndex,
+                _editAddress, phone, _editAmount,
+                date, _selectedStatus, _editComments,
+                _selected.Executor);
+            CloseDetail();
+            await LoadOrders();
+        }
+        catch (Exception ex) { _detailError = "Ошибка: " + ex.Message; }
+        finally { _saving = false; }
+    }
+
+    // Сохранение для исполнителя: только статус и дата
     async Task SaveStatus()
     {
         if (_selected == null) return;

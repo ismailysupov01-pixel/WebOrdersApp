@@ -105,6 +105,24 @@ public class GoogleSheetsService
         await req.ExecuteAsync();
     }
 
+    // Полное обновление всех полей заявки (для оператора)
+    public async Task UpdateOrderAsync(int rowIndex, string address, string phone, string amount,
+        string date, string status, string comments, string executorName = "")
+    {
+        var link  = Build2GisLink(address);
+        var range = $"{_sheetName}!A{rowIndex}:H{rowIndex}";
+        var body  = new ValueRange
+        {
+            Values = new List<IList<object>>
+            {
+                new List<object> { address, phone, amount, date, status, comments, link, executorName }
+            }
+        };
+        var req = _service!.Spreadsheets.Values.Update(body, _spreadsheetId, range);
+        req.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+        await req.ExecuteAsync();
+    }
+
     // Обновляет статус, ФИО исполнителя и (опционально) дату
     public async Task UpdateStatusAsync(int rowIndex, string newStatus, string executorName = "", string newDate = "")
     {
