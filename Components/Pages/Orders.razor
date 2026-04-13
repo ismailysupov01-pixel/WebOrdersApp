@@ -168,7 +168,7 @@
                 </div>
                 <div class="form-group">
                     <label>Телефон</label>
-                    <input type="text" @bind="_editPhone" class="form-input" placeholder="+7..."/>
+                    <input id="edit-phone-input" type="tel" @bind="_editPhone" class="form-input" placeholder="+7..."/>
                 </div>
                 <div class="form-group">
                     <label>Сумма</label>
@@ -334,10 +334,19 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
-        // Start polling for new orders (every 30s)
-        _pollTimer = new Timer(async _ => await InvokeAsync(PollOrders),
-            null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        if (firstRender)
+        {
+            // Запуск опроса новых заявок каждые 30 сек
+            _pollTimer = new Timer(async _ => await InvokeAsync(PollOrders),
+                null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+            // Маска на поле телефона при добавлении заявки
+            try { await JS.InvokeVoidAsync("initPhoneMask", "phone-mask-input"); } catch { }
+        }
+        // Маска на поле телефона в модалке редактирования (для оператора)
+        if (_selected != null && Session.Role == "Оператор")
+        {
+            try { await JS.InvokeVoidAsync("initPhoneMask", "edit-phone-input"); } catch { }
+        }
     }
 
     async Task PollOrders()
