@@ -37,13 +37,29 @@ window.initPhoneMask = function (id) {
     if (!el || el.dataset.maskInit) return;
     el.dataset.maskInit = '1';
 
-    // Всегда начинаем с +7, только цифры, максимум 10 цифр после +7
+    // Форматирование: +7XXX XXX XX XX
+    function applyFormat(digits10) {
+        let r = '+7';
+        if (digits10.length > 0) r += digits10.slice(0, 3);
+        if (digits10.length > 3) r += ' ' + digits10.slice(3, 6);
+        if (digits10.length > 6) r += ' ' + digits10.slice(6, 8);
+        if (digits10.length > 8) r += ' ' + digits10.slice(8, 10);
+        return r;
+    }
+
+    // Извлечь 10 цифр из строки (обрезаем лишний префикс 7/8 если 11 цифр)
+    function extractDigits(raw) {
+        let d = raw.replace(/\D/g, '');
+        if (d.length === 11 && (d.startsWith('7') || d.startsWith('8'))) d = d.slice(1);
+        return d.slice(0, 10);
+    }
+
     function handleInput(e) {
         const input = e.target;
         let value = input.value;
         if (!value.startsWith('+7')) value = '+7';
-        let digits = value.slice(2).replace(/\D/g, '').slice(0, 10);
-        input.value = '+7' + digits;
+        const digits = value.slice(2).replace(/\D/g, '').slice(0, 10);
+        input.value = applyFormat(digits);
         input.setSelectionRange(input.value.length, input.value.length);
     }
 
@@ -61,12 +77,12 @@ window.initPhoneMask = function (id) {
         }
     }
 
-    // Вставка из буфера — берём последние 10 цифр
+    // Вставка из буфера: +7XXXXXXXXXX → +7XXX XXX XX XX
     function handlePaste(e) {
         e.preventDefault();
-        let pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
-        pasted = pasted.slice(-10);
-        e.target.value = '+7' + pasted;
+        const raw = (e.clipboardData || window.clipboardData).getData('text');
+        const digits = extractDigits(raw);
+        e.target.value = applyFormat(digits);
         e.target.setSelectionRange(e.target.value.length, e.target.value.length);
     }
 
@@ -82,6 +98,11 @@ window.initPhoneMask = function (id) {
     el.addEventListener('paste',   handlePaste);
     el.addEventListener('focus',   handleFocus);
 
-    // Начальное значение
-    if (!el.value) el.value = '+7';
+    // Начальное значение — если уже что-то есть, форматируем
+    if (!el.value) {
+        el.value = '+7';
+    } else {
+        const digits = extractDigits(el.value);
+        el.value = applyFormat(digits) || '+7';
+    }
 };
