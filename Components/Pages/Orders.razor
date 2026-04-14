@@ -417,17 +417,27 @@
     }
     void CloseAdd() => _showAdd = false;
 
-    void OnAddressInput(ChangeEventArgs e) => _newOrder.Address = e.Value?.ToString() ?? "";
-    void OnAmountInput(ChangeEventArgs e)  => _newOrder.Amount  = e.Value?.ToString() ?? "";
+    // Подавляем re-render при наборе текста, чтобы не было мигания
+    bool _suppressRender = false;
+    protected override bool ShouldRender()
+    {
+        if (_suppressRender) { _suppressRender = false; return false; }
+        return true;
+    }
+
+    void OnAddressInput(ChangeEventArgs e) { _suppressRender = true; _newOrder.Address = e.Value?.ToString() ?? ""; }
+    void OnAmountInput(ChangeEventArgs e)  { _suppressRender = true; _newOrder.Amount  = e.Value?.ToString() ?? ""; }
 
     void OnPhoneInput(ChangeEventArgs e)
     {
+        _suppressRender = true;
         _phoneInput = e.Value?.ToString() ?? "";
         _newOrder.Phone = FormatPhone(_phoneInput);
     }
 
     void OnEditPhoneInput(ChangeEventArgs e)
     {
+        _suppressRender = true;
         _editPhone = e.Value?.ToString() ?? "";
     }
 
