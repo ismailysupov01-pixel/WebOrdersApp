@@ -295,7 +295,13 @@ main:has(.map-page) { padding: 0; overflow: hidden; }
 }
 
 /* ===== TABLE ===== */
-.table-wrapper { overflow-x: auto; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.table-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 160px);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
 
 .orders-table {
     width: 100%;
