@@ -305,15 +305,16 @@ main:has(.map-page) { padding: 0; overflow: hidden; }
 .orders-table thead tr {
     background: #1976D2;
     color: #fff;
-    position: sticky;
-    top: 0;
-    z-index: 10;
 }
 .orders-table th {
     padding: 12px 14px;
     text-align: left;
     font-weight: 600;
     font-size: 0.88rem;
+    position: sticky;
+    top: 0;
+    background: #1976D2;
+    z-index: 10;
     letter-spacing: 0.03em;
 }
 .orders-table td {
