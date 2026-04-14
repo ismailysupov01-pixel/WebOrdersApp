@@ -84,6 +84,8 @@ window.initPhoneMask = function (id) {
         const digits = extractDigits(raw);
         e.target.value = applyFormat(digits);
         e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+        // Уведомляем Blazor об изменении значения
+        e.target.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     // Фокус — устанавливаем +7, курсор в конец
