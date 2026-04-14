@@ -8,7 +8,7 @@ body {
 }
 
 /* ===== APP SHELL ===== */
-.app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+.app-shell { display: flex; flex-direction: column; height: 100vh; }
 
 /* ===== TOP BAR ===== */
 .top-bar {
@@ -255,7 +255,7 @@ body {
 .btn-role.executor  { background: #388E3C; color: #fff; }
 
 /* ===== ORDERS PAGE ===== */
-main { padding: 24px; flex: 1; }
+main { padding: 24px; flex: 1; overflow-y: auto; min-height: 0; }
 main:has(.map-page) { padding: 0; overflow: hidden; }
 
 .orders-page { max-width: 1400px; margin: 0 auto; }
@@ -297,8 +297,6 @@ main:has(.map-page) { padding: 0; overflow: hidden; }
 /* ===== TABLE ===== */
 .table-wrapper {
     overflow-x: auto;
-    overflow-y: auto;
-    max-height: calc(100vh - 160px);
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
