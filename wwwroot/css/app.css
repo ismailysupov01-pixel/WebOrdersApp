@@ -255,7 +255,7 @@ body {
 .btn-role.executor  { background: #388E3C; color: #fff; }
 
 /* ===== ORDERS PAGE ===== */
-main { padding: 24px; flex: 1; overflow-y: auto; min-height: 0; }
+main { padding: 0 24px 24px 24px; flex: 1; overflow-y: auto; min-height: 0; }
 main:has(.map-page) { padding: 0; overflow: hidden; }
 
 .orders-page { max-width: 1400px; margin: 0 auto; }
@@ -264,13 +264,13 @@ main:has(.map-page) { padding: 0; overflow: hidden; }
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
     position: sticky;
     top: 0;
     background: #f0f4f8;
     z-index: 20;
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding-top: 16px;
+    padding-bottom: 16px;
 }
 .orders-header h2 { margin: 0; flex: 1; font-size: 1.4rem; color: #1976D2; }
 
@@ -322,7 +322,7 @@ main:has(.map-page) { padding: 0; overflow: hidden; }
     font-weight: 600;
     font-size: 0.88rem;
     position: sticky;
-    top: 70px;
+    top: 74px;
     background: #1976D2;
     z-index: 10;
     letter-spacing: 0.03em;
