@@ -265,6 +265,12 @@ main:has(.map-page) { padding: 0; overflow: hidden; }
     align-items: center;
     gap: 16px;
     margin-bottom: 20px;
+    position: sticky;
+    top: -24px;
+    background: #f0f4f8;
+    z-index: 20;
+    padding-top: 24px;
+    margin-top: -24px;
 }
 .orders-header h2 { margin: 0; flex: 1; font-size: 1.4rem; color: #1976D2; }
 
@@ -297,6 +303,8 @@ main:has(.map-page) { padding: 0; overflow: hidden; }
 /* ===== TABLE ===== */
 .table-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 160px);
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
