@@ -1,15 +1,13 @@
 let _map = null;
-let _markers = {};  // orderNumber -> marker
+let _markers = {};
 let _dotNet = null;
 
 async function ensureLeaflet() {
     if (window.L) return;
-    // Load Leaflet CSS
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
     document.head.appendChild(link);
-    // Load Leaflet JS
     await new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
@@ -23,7 +21,6 @@ window.mapInit = async function (orders, dotNetRef) {
     await ensureLeaflet();
     _dotNet = dotNetRef;
 
-    // Destroy old map
     Object.values(_markers).forEach(m => { try { m.remove(); } catch (e) { } });
     _markers = {};
     if (_map) { try { _map.remove(); } catch (e) { } _map = null; }
@@ -31,7 +28,6 @@ window.mapInit = async function (orders, dotNetRef) {
     const container = document.getElementById('map-container');
     if (!container) return;
 
-    // Create map centered on Almaty
     _map = L.map('map-container').setView([43.2567, 76.9286], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -39,7 +35,6 @@ window.mapInit = async function (orders, dotNetRef) {
         maxZoom: 19
     }).addTo(_map);
 
-    // Geocode and add markers one by one
     for (const order of orders) {
         if (!order.address) continue;
         const coords = await geocode(order.address);
@@ -64,13 +59,10 @@ window.mapInit = async function (orders, dotNetRef) {
         });
 
         _markers[order.orderNumber] = marker;
-
-        // Nominatim rate limit: 1 req/sec
         await sleep(1100);
     }
 };
 
-window.mapBuildRoute = function (orders) {
 window.mapBuildRoute = function (orders) {
     if (!orders || orders.length === 0) return 0;
 
@@ -135,6 +127,5 @@ function sleep(ms) {
 }
 
 function waPhone(phone) {
-    // Strip everything except digits
     return phone.replace(/\D/g, '');
 }
