@@ -1,6 +1,4 @@
 using Google.Apis.Auth.OAuth2;
-using Google.Apis.Auth.OAuth2.Flows;
-using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
@@ -24,23 +22,35 @@ public class GoogleSheetsService
 
     public async Task InitAsync()
     {
-        var clientId     = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")     ?? _config["GoogleOAuth:ClientId"]     ?? "";
-        var clientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ?? _config["GoogleOAuth:ClientSecret"] ?? "";
-        var refreshToken = Environment.GetEnvironmentVariable("GOOGLE_REFRESH_TOKEN") ?? _config["GoogleOAuth:RefreshToken"] ?? "";
+        // Получаем JSON ключ из переменной окружения
+        var jsonKey = Environment.GetEnvironmentVariable("GOOGLE_SERVICE_ACCOUNT_JSON");
 
-        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+        GoogleCredential credential;
+
+        if (!string.IsNullOrEmpty(jsonKey))
         {
-            ClientSecrets = new ClientSecrets { ClientId = clientId, ClientSecret = clientSecret },
-            Scopes = new[] { SheetsService.Scope.Spreadsheets }
-        });
-
-        var credential = new UserCredential(flow, "user", new TokenResponse { RefreshToken = refreshToken });
+            // Из переменной окружения (для Render)
+            using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonKey));
+            credential = GoogleCredential
+                .FromStream(stream)
+                .CreateScoped(SheetsService.Scope.Spreadsheets);
+        }
+        else
+        {
+            // Из локального файла (для разработки)
+            var keyPath = _config["GoogleServiceAccountKeyPath"] ?? "service-account.json";
+            using var stream = new FileStream(keyPath, FileMode.Open, FileAccess.Read);
+            credential = GoogleCredential
+                .FromStream(stream)
+                .CreateScoped(SheetsService.Scope.Spreadsheets);
+        }
 
         _service = new SheetsService(new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,
             ApplicationName = "WebOrdersApp"
         });
+
         await Task.CompletedTask;
     }
 
@@ -72,7 +82,7 @@ public class GoogleSheetsService
             rowIndex++;
         }
 
-        // Сортируем по дате по возрастанию (старые сверху, новые снизу)
+        // Сортируем по дате по возрастанию
         orders.Sort((a, b) =>
         {
             bool da = TryParseDate(a.Date, out var dtA);
@@ -105,7 +115,6 @@ public class GoogleSheetsService
         await req.ExecuteAsync();
     }
 
-    // Полное обновление всех полей заявки (для оператора)
     public async Task UpdateOrderAsync(int rowIndex, string address, string phone, string amount,
         string date, string status, string comments, string executorName = "")
     {
@@ -123,10 +132,8 @@ public class GoogleSheetsService
         await req.ExecuteAsync();
     }
 
-    // Обновляет статус, ФИО исполнителя и (опционально) дату
     public async Task UpdateStatusAsync(int rowIndex, string newStatus, string executorName = "", string newDate = "")
     {
-        // E = статус, H = исполнитель
         var range = $"{_sheetName}!E{rowIndex}:H{rowIndex}";
         var body = new ValueRange
         {
@@ -139,7 +146,6 @@ public class GoogleSheetsService
         req.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
         await req.ExecuteAsync();
 
-        // Обновляем дату в столбце D, если она изменилась
         if (!string.IsNullOrEmpty(newDate))
         {
             var dateRange = $"{_sheetName}!D{rowIndex}";
