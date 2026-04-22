@@ -545,6 +545,28 @@ textarea.form-input { resize: vertical; }
     .map-order-addr { font-size: 0.88rem; }
 }
 
+/* ===== ROUTE BUTTON ===== */
+.btn-route {
+    width: 100%;
+    margin: 8px 0 4px;
+    padding: 10px 14px;
+    background: #43a047;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+}
+.btn-route:hover:not(:disabled) { background: #388e3c; }
+.btn-route:disabled { background: #a5d6a7; cursor: not-allowed; }
+.route-msg {
+    font-size: 0.82rem;
+    color: #e65100;
+    padding: 4px 2px;
+}
+
 /* ===== IMPORT PAGE ===== */
 .import-hint {
     background: #e3f2fd;

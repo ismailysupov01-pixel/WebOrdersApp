@@ -56,6 +56,21 @@
         else
         {
             <div class="map-order-count">Заявок: @_filtered.Count</div>
+            @if (_filtered.Count > 0)
+            {
+                <button class="btn-route" @onclick="BuildRoute" disabled="@(_geocoding || _routeBuilding)">
+                    @if (_routeBuilding)
+                    { <span>Открываю маршрут...</span> }
+                    else if (_geocoding)
+                    { <span>Ожидайте геокодирование...</span> }
+                    else
+                    { <span>🗺 Маршрут в 2ГИС (@_filtered.Count адр.)</span> }
+                </button>
+                @if (_routeMsg != null)
+                {
+                    <div class="route-msg">@_routeMsg</div>
+                }
+            }
             <div class="map-order-list">
                 @foreach (var o in _filtered)
                 {
@@ -113,10 +128,12 @@
     bool _geocoding = false;
     string? _error;
     DateTime _filterDate = DateTime.Today;
-    bool _filterActive   = true;   // по умолчанию — сегодня
-    bool _mobileMapView  = false;  // на мобильном сначала показываем список
+    bool _filterActive   = true;
+    bool _mobileMapView  = false;
     DotNetObjectReference<Map>? _dotNetRef;
     bool _mapInitialized = false;
+    bool _routeBuilding  = false;
+    string? _routeMsg;
 
     protected override async Task OnInitializedAsync()
     {
@@ -238,6 +255,21 @@
         await ShowMap();
         await Task.Delay(200);
         try { await JS.InvokeVoidAsync("mapFlyTo", o.OrderNumber); } catch { }
+    }
+
+    async Task BuildRoute()
+    {
+        _routeMsg = null;
+        _routeBuilding = true;
+        try
+        {
+            var orderNumbers = _filtered.Select(o => o.OrderNumber).ToArray();
+            var count = await JS.InvokeAsync<int>("mapBuildRoute", new object[] { orderNumbers });
+            if (count == 0)
+                _routeMsg = "Адреса ещё не геокодированы — подождите окончания загрузки карты.";
+        }
+        catch (Exception ex) { _routeMsg = "Ошибка: " + ex.Message; }
+        finally { _routeBuilding = false; }
     }
 
     static string WaPhone(string phone) =>
