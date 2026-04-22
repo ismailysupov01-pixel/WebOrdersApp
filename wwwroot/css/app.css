@@ -487,11 +487,14 @@ textarea.form-input { resize: vertical; }
 @media (max-width: 768px) {
 
     /* Header */
-    .top-bar { padding: 8px 12px; gap: 6px; }
-    .app-title { font-size: 1rem; }
+    .top-bar { padding: 6px 10px; gap: 4px; flex-wrap: wrap; }
+    .app-title { font-size: 0.95rem; flex: none; }
     .role-badge { display: none; }
-    .top-nav { display: none; }   /* nav hidden — replaced by mobile tabs on map page */
+    .top-nav { display: flex; gap: 2px; flex: 1; }
+    .nav-link { padding: 5px 10px; font-size: 0.82rem; }
+    .top-bar-right { margin-left: auto; }
     .btn-logout { padding: 5px 8px; font-size: 0.78rem; }
+    .user-name-badge { max-width: 100px; font-size: 0.75rem; }
     main { padding: 0; }
     main:has(.map-page) { padding: 0; }
 
