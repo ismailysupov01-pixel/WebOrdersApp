@@ -71,10 +71,9 @@ window.mapInit = async function (orders, dotNetRef) {
 };
 
 window.mapBuildRoute = function (orders) {
-    // orders = [{orderNumber, address}, ...]
+window.mapBuildRoute = function (orders) {
     if (!orders || orders.length === 0) return 0;
 
-    // Use geocoded coords if available, otherwise fall back to text address
     const encode = (order) => {
         const marker = _markers[order.orderNumber];
         if (marker) {
@@ -85,8 +84,7 @@ window.mapBuildRoute = function (orders) {
     };
 
     if (orders.length === 1) {
-        const pt = encode(orders[0]);
-        window.open(`https://2gis.kz/almaty/routeSearch/rsType/car/to/${pt}`, '_blank');
+        window.open(`https://2gis.kz/almaty/routeSearch/rsType/car/to/${encode(orders[0])}`, '_blank');
         return 1;
     }
 
