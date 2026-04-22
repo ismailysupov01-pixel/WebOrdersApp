@@ -1,0 +1,224 @@
+@page "/import"
+@inject GoogleSheetsService Sheets
+@inject UserSession Session
+@inject NavigationManager Nav
+
+@if (!Session.IsAuthenticated || Session.Role != "Оператор")
+{
+    Nav.NavigateTo("/");
+    return;
+}
+
+<div class="orders-page">
+    <div class="orders-header">
+        <h2>Импорт заявок из Excel</h2>
+    </div>
+
+    @if (_step == 1)
+    {
+        <div class="import-hint">
+            <p>Скопируйте ячейки из Excel (Ctrl+C) и вставьте в поле ниже (Ctrl+V).</p>
+            <p class="import-hint-small">Ожидаемые столбцы: <b>Адрес, Телефон, Сумма, Дата, [Время], Статус, Комментарии</b></p>
+        </div>
+        <textarea class="import-textarea"
+                  placeholder="Вставьте данные из Excel сюда..."
+                  @bind="_pastedText"
+                  @bind:event="oninput"
+                  rows="12"></textarea>
+        <div class="import-actions">
+            <button class="btn-add" @onclick="ParseData" disabled="@string.IsNullOrWhiteSpace(_pastedText)">
+                Далее — предпросмотр
+            </button>
+        </div>
+        @if (_parseError != null)
+        {
+            <div class="alert-error">@_parseError</div>
+        }
+    }
+
+    @if (_step == 2 && _preview != null)
+    {
+        <div class="import-hint">
+            Найдено строк: <b>@_preview.Count</b>. Проверьте данные и нажмите «Импортировать».
+        </div>
+
+        <div class="table-wrapper">
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Адрес</th>
+                        <th>Телефон</th>
+                        <th>Сумма</th>
+                        <th>Дата</th>
+                        <th>Статус</th>
+                        <th>Комментарии</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < _preview.Count; i++)
+                    {
+                        var row = _preview[i];
+                        var idx = i;
+                        <tr class="@(row.Skip ? "row-red" : "row-blue")">
+                            <td>
+                                <input type="checkbox" checked="@(!row.Skip)"
+                                       @onchange="e => row.Skip = !(bool)(e.Value ?? true)" />
+                            </td>
+                            <td>@row.Address</td>
+                            <td>@row.Phone</td>
+                            <td>@row.Amount</td>
+                            <td>@row.Date</td>
+                            <td>@row.Status</td>
+                            <td>@row.Comments</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (_importError != null)
+        {
+            <div class="alert-error">@_importError</div>
+        }
+
+        <div class="import-actions">
+            <button class="btn-add" @onclick="DoImport" disabled="@_importing">
+                @(_importing ? $"Импорт... {_importedCount}/{_preview.Count(r => !r.Skip)}" : $"Импортировать ({_preview.Count(r => !r.Skip)})")
+            </button>
+            <button class="btn-cancel" @onclick="Reset">Назад</button>
+        </div>
+    }
+
+    @if (_step == 3)
+    {
+        <div class="import-success">
+            Успешно импортировано заявок: <b>@_importedCount</b>
+        </div>
+        <div class="import-actions">
+            <a href="/orders" class="btn-add">Перейти к заявкам</a>
+            <button class="btn-cancel" @onclick="Reset">Импортировать ещё</button>
+        </div>
+    }
+</div>
+
+@code {
+    string _pastedText = "";
+    int _step = 1;
+    string? _parseError;
+    string? _importError;
+    bool _importing = false;
+    int _importedCount = 0;
+
+    class PreviewRow
+    {
+        public string Address  { get; set; } = "";
+        public string Phone    { get; set; } = "";
+        public string Amount   { get; set; } = "";
+        public string Date     { get; set; } = "";
+        public string Status   { get; set; } = "";
+        public string Comments { get; set; } = "";
+        public bool   Skip     { get; set; } = false;
+    }
+
+    List<PreviewRow>? _preview;
+
+    void ParseData()
+    {
+        _parseError = null;
+        var lines = _pastedText
+            .Split('\n')
+            .Select(l => l.TrimEnd('\r'))
+            .Where(l => !string.IsNullOrWhiteSpace(l))
+            .ToList();
+
+        if (lines.Count == 0)
+        {
+            _parseError = "Нет данных для импорта.";
+            return;
+        }
+
+        // Определяем — первая строка заголовок или нет
+        var firstCols = lines[0].Split('\t');
+        bool hasHeader = firstCols.Any(c =>
+            c.Contains("Адрес", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Телефон", StringComparison.OrdinalIgnoreCase) ||
+            c.Contains("Сумма", StringComparison.OrdinalIgnoreCase));
+
+        var dataLines = hasHeader ? lines.Skip(1).ToList() : lines;
+
+        if (dataLines.Count == 0)
+        {
+            _parseError = "Данные не найдены (только заголовок).";
+            return;
+        }
+
+        _preview = new List<PreviewRow>();
+        foreach (var line in dataLines)
+        {
+            var cols = line.Split('\t');
+            string Get(int i) => i < cols.Length ? cols[i].Trim() : "";
+
+            // Определяем наличие столбца "Время" (5 или 6 колонок до Статуса)
+            // Формат: Адрес|Телефон|Сумма|Дата|[Время]|Статус|Комментарии
+            bool hasTime = cols.Length >= 7;
+
+            _preview.Add(new PreviewRow
+            {
+                Address  = Get(0),
+                Phone    = Get(1),
+                Amount   = Get(2),
+                Date     = Get(3),
+                Status   = hasTime ? Get(5) : Get(4),
+                Comments = hasTime ? Get(6) : Get(5),
+            });
+        }
+
+        _step = 2;
+    }
+
+    async Task DoImport()
+    {
+        if (_preview == null) return;
+        _importing = true;
+        _importError = null;
+        _importedCount = 0;
+
+        var toImport = _preview.Where(r => !r.Skip).ToList();
+
+        try
+        {
+            foreach (var row in toImport)
+            {
+                var order = new WebOrdersApp.Models.Order
+                {
+                    Address  = row.Address,
+                    Phone    = row.Phone,
+                    Amount   = row.Amount,
+                    Date     = row.Date,
+                    Status   = string.IsNullOrEmpty(row.Status) ? WebOrdersApp.Models.OrderStatus.New : row.Status,
+                    Comments = row.Comments,
+                };
+                await Sheets.AddOrderAsync(order);
+                _importedCount++;
+                StateHasChanged();
+            }
+            _step = 3;
+        }
+        catch (Exception ex)
+        {
+            _importError = "Ошибка при импорте: " + ex.Message;
+        }
+        finally { _importing = false; }
+    }
+
+    void Reset()
+    {
+        _pastedText = "";
+        _preview = null;
+        _parseError = null;
+        _importError = null;
+        _importedCount = 0;
+        _step = 1;
+    }
+}

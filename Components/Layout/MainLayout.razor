@@ -11,6 +11,10 @@
             <nav class="top-nav">
                 <a href="/orders" class="nav-link @(Nav.Uri.Contains("/orders") ? "active" : "")">📋 Заявки</a>
                 <a href="/map"    class="nav-link @(Nav.Uri.Contains("/map")    ? "active" : "")">🗺 Карта</a>
+                @if (Session.Role == "Оператор")
+                {
+                    <a href="/import" class="nav-link @(Nav.Uri.Contains("/import") ? "active" : "")">📥 Импорт</a>
+                }
             </nav>
             <div class="top-bar-right">
                 <span class="user-name-badge" title="@Session.Role">@Session.Name</span>
