@@ -66,28 +66,9 @@ window.mapInit = async function (orders, dotNetRef) {
 window.mapBuildRoute = function (orders) {
     if (!orders || orders.length === 0) return 0;
 
-    const encode = (order) => {
-        const marker = _markers[order.orderNumber];
-        if (marker) {
-            const ll = marker.getLatLng();
-            return `${ll.lng.toFixed(6)},${ll.lat.toFixed(6)}`;
-        }
-        return encodeURIComponent(order.address + ', Алматы');
-    };
-
-    if (orders.length === 1) {
-        window.open(`https://2gis.kz/almaty/routeSearch/rsType/car/to/${encode(orders[0])}`, '_blank');
-        return 1;
-    }
-
-    const from = encode(orders[0]);
-    const to   = encode(orders[orders.length - 1]);
-    let url = `https://2gis.kz/almaty/routeSearch/rsType/car/from/${from}/to/${to}`;
-
-    if (orders.length > 2) {
-        const via = orders.slice(1, -1).map(encode).join('/');
-        url += `/via/${via}`;
-    }
+    const points = orders.map(o => encodeURIComponent('Алматы, ' + o.address));
+    const rtext = points.join('~');
+    const url = `https://yandex.kz/maps/?rtext=${rtext}&rtt=auto`;
 
     window.open(url, '_blank');
     return orders.length;
