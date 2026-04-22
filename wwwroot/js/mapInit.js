@@ -70,33 +70,37 @@ window.mapInit = async function (orders, dotNetRef) {
     }
 };
 
-window.mapBuildRoute = function (orderNumbers) {
-    // Collect coords for the given order numbers (preserving order)
-    const points = [];
-    for (const num of orderNumbers) {
-        const marker = _markers[num];
+window.mapBuildRoute = function (orders) {
+    // orders = [{orderNumber, address}, ...]
+    if (!orders || orders.length === 0) return 0;
+
+    // Use geocoded coords if available, otherwise fall back to text address
+    const encode = (order) => {
+        const marker = _markers[order.orderNumber];
         if (marker) {
             const ll = marker.getLatLng();
-            points.push([ll.lng, ll.lat]);  // 2GIS uses lon,lat
+            return `${ll.lng.toFixed(6)},${ll.lat.toFixed(6)}`;
         }
-    }
-    if (points.length === 0) return 0;
-    if (points.length === 1) {
-        window.open(`https://2gis.kz/almaty/routeSearch/rsType/car/to/${points[0][0]},${points[0][1]}`, '_blank');
+        return encodeURIComponent(order.address + ', Алматы');
+    };
+
+    if (orders.length === 1) {
+        const pt = encode(orders[0]);
+        window.open(`https://2gis.kz/almaty/routeSearch/rsType/car/to/${pt}`, '_blank');
         return 1;
     }
 
-    const from = `${points[0][0]},${points[0][1]}`;
-    const to   = `${points[points.length - 1][0]},${points[points.length - 1][1]}`;
+    const from = encode(orders[0]);
+    const to   = encode(orders[orders.length - 1]);
     let url = `https://2gis.kz/almaty/routeSearch/rsType/car/from/${from}/to/${to}`;
 
-    if (points.length > 2) {
-        const via = points.slice(1, -1).map(p => `${p[0]},${p[1]}`).join('/');
+    if (orders.length > 2) {
+        const via = orders.slice(1, -1).map(encode).join('/');
         url += `/via/${via}`;
     }
 
     window.open(url, '_blank');
-    return points.length;
+    return orders.length;
 };
 
 window.mapDestroy = function () {

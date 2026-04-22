@@ -263,10 +263,10 @@
         _routeBuilding = true;
         try
         {
-            var orderNumbers = _filtered.Select(o => o.OrderNumber).ToArray();
-            var count = await JS.InvokeAsync<int>("mapBuildRoute", new object[] { orderNumbers });
+            var orders = _filtered.Select(o => new { orderNumber = o.OrderNumber, address = o.Address }).ToArray();
+            var count = await JS.InvokeAsync<int>("mapBuildRoute", new object[] { orders });
             if (count == 0)
-                _routeMsg = "Адреса ещё не геокодированы — подождите окончания загрузки карты.";
+                _routeMsg = "Нет адресов для построения маршрута.";
         }
         catch (Exception ex) { _routeMsg = "Ошибка: " + ex.Message; }
         finally { _routeBuilding = false; }
