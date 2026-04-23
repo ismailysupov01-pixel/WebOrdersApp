@@ -63,23 +63,27 @@ window.mapInit = async function (orders, dotNetRef) {
     }
 };
 
-window.mapBuildRoute = async function (orders) {
+window.mapBuildRoute = function (orders) {
     if (!orders || orders.length === 0) return 0;
 
     const points = orders.map(o => encodeURIComponent('Алматы, ' + o.address));
 
-    try {
-        const pos = await new Promise((resolve, reject) =>
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 }));
-        const lat = pos.coords.latitude.toFixed(6);
-        const lon = pos.coords.longitude.toFixed(6);
-        const start = lat + '%2C' + lon;
-        const rtext = start + '~' + points.join('~');
-        window.open(`https://yandex.kz/maps/?rtext=${rtext}&rtt=auto`, '_blank');
-    } catch (e) {
-        const rtext = points.join('~');
-        window.open(`https://yandex.kz/maps/?rtext=${rtext}&rtt=auto`, '_blank');
-    }
+    // Open tab immediately (inside user gesture) to avoid popup blocker
+    const tab = window.open('', '_blank');
+
+    navigator.geolocation.getCurrentPosition(
+        function (pos) {
+            const lat = pos.coords.latitude.toFixed(6);
+            const lon = pos.coords.longitude.toFixed(6);
+            const rtext = lat + '%2C' + lon + '~' + points.join('~');
+            tab.location.href = `https://yandex.kz/maps/?rtext=${rtext}&rtt=auto`;
+        },
+        function () {
+            // Geolocation denied — open without start point
+            tab.location.href = `https://yandex.kz/maps/?rtext=${points.join('~')}&rtt=auto`;
+        },
+        { timeout: 8000 }
+    );
 
     return orders.length;
 };
