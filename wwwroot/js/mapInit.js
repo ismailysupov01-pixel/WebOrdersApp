@@ -67,7 +67,7 @@ window.mapBuildRoute = function (orders) {
     if (!orders || orders.length === 0) return 0;
 
     const points = orders.map(o => encodeURIComponent('Алматы, ' + o.address));
-    const rtext = points.join('~');
+   const rtext = '~' + points.join('~');
     const url = `https://yandex.kz/maps/?rtext=${rtext}&rtt=auto`;
 
     window.open(url, '_blank');
