@@ -67,12 +67,27 @@ window.mapBuildRoute = function (orders) {
     if (!orders || orders.length === 0) return 0;
 
     const openRoute = function (startCoords) {
-        const destPoints = orders.map(o => encodeURIComponent('Алматы, ' + o.address));
-        const rtext = startCoords
-            ? encodeURIComponent(startCoords) + '~' + destPoints.join('~')
-            : destPoints.join('~');
+        // Use geocoded coords from markers
+        const destPoints = orders
+            .map(o => {
+                const marker = _markers[o.orderNumber];
+                if (marker) {
+                    const ll = marker.getLatLng();
+                    return ll.lat.toFixed(6) + ',' + ll.lng.toFixed(6);
+                }
+                return null;
+            })
+            .filter(p => p !== null);
 
+        if (destPoints.length === 0) {
+            alert('Подождите — карта ещё загружает адреса. Попробуйте через 10 секунд.');
+            return;
+        }
+
+        const allPoints = startCoords ? [startCoords, ...destPoints] : destPoints;
+        const rtext = allPoints.join('~');
         const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+
         if (isMobile) {
             window.location.href = `yandexmaps://maps.yandex.ru/?rtext=${rtext}&rtt=auto`;
         } else {
