@@ -56,7 +56,7 @@ public class GoogleSheetsService
 
     public async Task<List<Order>> GetOrdersAsync()
     {
-        var range    = $"{_sheetName}!A2:H";
+        var range    = $"{_sheetName}!A2:I";
         var response = await _service!.Spreadsheets.Values.Get(_spreadsheetId, range).ExecuteAsync();
         var orders   = new List<Order>();
 
@@ -77,7 +77,8 @@ public class GoogleSheetsService
                 Status      = string.IsNullOrEmpty(Get(4)) ? OrderStatus.New : Get(4),
                 Comments    = Get(5),
                 TwoGisLink  = Get(6),
-                Executor    = Get(7)
+                Executor    = Get(7),
+                Author      = Get(8)
             });
             rowIndex++;
         }
@@ -107,24 +108,24 @@ public class GoogleSheetsService
         {
             Values = new List<IList<object>>
             {
-                new List<object> { order.Address, order.Phone, order.Amount, order.Date, OrderStatus.New, order.Comments, link, "" }
+                new List<object> { order.Address, order.Phone, order.Amount, order.Date, OrderStatus.New, order.Comments, link, "", order.Author }
             }
         };
-        var req = _service!.Spreadsheets.Values.Append(body, _spreadsheetId, $"{_sheetName}!A:H");
+        var req = _service!.Spreadsheets.Values.Append(body, _spreadsheetId, $"{_sheetName}!A:I");
         req.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.RAW;
         await req.ExecuteAsync();
     }
 
     public async Task UpdateOrderAsync(int rowIndex, string address, string phone, string amount,
-        string date, string status, string comments, string executorName = "")
+        string date, string status, string comments, string executorName = "", string author = "")
     {
         var link  = Build2GisLink(address);
-        var range = $"{_sheetName}!A{rowIndex}:H{rowIndex}";
+        var range = $"{_sheetName}!A{rowIndex}:I{rowIndex}";
         var body  = new ValueRange
         {
             Values = new List<IList<object>>
             {
-                new List<object> { address, phone, amount, date, status, comments, link, executorName }
+                new List<object> { address, phone, amount, date, status, comments, link, executorName, author }
             }
         };
         var req = _service!.Spreadsheets.Values.Update(body, _spreadsheetId, range);
@@ -134,18 +135,30 @@ public class GoogleSheetsService
 
     public async Task UpdateStatusAsync(int rowIndex, string newStatus, string executorName = "", string newDate = "")
     {
-        var range = $"{_sheetName}!E{rowIndex}:H{rowIndex}";
-        var body = new ValueRange
+        // Обновляем только статус (E) — не трогаем Comments (F) и TwoGisLink (G)
+        var statusRange = $"{_sheetName}!E{rowIndex}";
+        var statusBody = new ValueRange
         {
-            Values = new List<IList<object>>
-            {
-                new List<object> { newStatus, "", "", executorName }
-            }
+            Values = new List<IList<object>> { new List<object> { newStatus } }
         };
-        var req = _service!.Spreadsheets.Values.Update(body, _spreadsheetId, range);
-        req.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
-        await req.ExecuteAsync();
+        var statusReq = _service!.Spreadsheets.Values.Update(statusBody, _spreadsheetId, statusRange);
+        statusReq.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+        await statusReq.ExecuteAsync();
 
+        // Обновляем исполнителя (H), если указан
+        if (!string.IsNullOrEmpty(executorName))
+        {
+            var execRange = $"{_sheetName}!H{rowIndex}";
+            var execBody = new ValueRange
+            {
+                Values = new List<IList<object>> { new List<object> { executorName } }
+            };
+            var execReq = _service!.Spreadsheets.Values.Update(execBody, _spreadsheetId, execRange);
+            execReq.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+            await execReq.ExecuteAsync();
+        }
+
+        // Обновляем дату (D), если указана
         if (!string.IsNullOrEmpty(newDate))
         {
             var dateRange = $"{_sheetName}!D{rowIndex}";

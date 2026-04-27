@@ -87,7 +87,9 @@
                         <th>Телефон</th>
                         <th>Сумма</th>
                         <th>Дата</th>
+                        <th>Автор</th>
                         <th>Статус</th>
+                        <th>Исполнитель</th>
                         <th>Комментарии</th>
                         <th>2ГИС</th>
                     </tr>
@@ -112,7 +114,9 @@
                             </td>
                             <td>@o.Amount</td>
                             <td>@o.Date</td>
+                            <td><span class="author-badge">@o.Author</span></td>
                             <td><span class="status-badge @StatusClass(o.Status)">@o.Status</span></td>
+                            <td><span class="executor-badge @(string.IsNullOrEmpty(o.Executor) ? "" : "executor-filled")">@o.Executor</span></td>
                             <td>@o.Comments</td>
                             <td @onclick:stopPropagation="true">
                                 @if (!string.IsNullOrEmpty(o.TwoGisLink))
@@ -172,6 +176,10 @@
             <div class="form-group">
                 <label>Комментарии</label>
                 <textarea @bind="_newOrder.Comments" class="form-input" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Автор заявки</label>
+                <div class="author-display">@Session.Name</div>
             </div>
             @if (_addError != null)
             {
@@ -239,6 +247,17 @@
                         <option>@OrderStatus.Cancelled</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>Автор заявки</label>
+                    <div class="author-display">@(string.IsNullOrEmpty(_selected.Author) ? "—" : _selected.Author)</div>
+                </div>
+                @if (!string.IsNullOrEmpty(_selected.Executor))
+                {
+                    <div class="form-group">
+                        <label>Исполнитель</label>
+                        <div class="author-display">@_selected.Executor</div>
+                    </div>
+                }
                 @if (!string.IsNullOrEmpty(_selected.TwoGisLink))
                 {
                     <div style="margin-top:6px">
@@ -263,6 +282,14 @@
                     <tr><th>Сумма</th><td>@_selected.Amount</td></tr>
                     <tr><th>Дата</th><td>@_selected.Date</td></tr>
                     <tr><th>Комментарии</th><td>@_selected.Comments</td></tr>
+                    @if (!string.IsNullOrEmpty(_selected.Author))
+                    {
+                        <tr><th>Автор</th><td>@_selected.Author</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(_selected.Executor))
+                    {
+                        <tr><th>Исполнитель</th><td>@_selected.Executor</td></tr>
+                    }
                     <tr>
                         <th>2ГИС</th>
                         <td>
@@ -473,7 +500,7 @@
 
     void OpenAdd()
     {
-        _newOrder = new Order();
+        _newOrder = new Order { Author = Session.Name };
         _phoneInput = "";
         _dateValue = DateTime.Today;
         _dateText = DateTime.Today.ToString("dd.MM.yyyy");
@@ -607,7 +634,7 @@
                 _selected.RowIndex,
                 _editAddress, phone, _editAmount,
                 date, _selectedStatus, _editComments,
-                _selected.Executor);
+                _selected.Executor, _selected.Author);
             CloseDetail();
             await LoadOrders();
         }
