@@ -49,10 +49,39 @@
     }
     else
     {
+        @if (_checkedRows.Count > 0)
+        {
+            <div class="bulk-bar">
+                <span class="bulk-count">Выбрано: <b>@_checkedRows.Count</b></span>
+                <select @bind="_bulkStatus" class="form-input bulk-select">
+                    <option value="">— Выберите статус —</option>
+                    <option value="@OrderStatus.New">@OrderStatus.New</option>
+                    <option value="@OrderStatus.Completed">@OrderStatus.Completed</option>
+                    <option value="@OrderStatus.Cancelled">@OrderStatus.Cancelled</option>
+                </select>
+                <button class="btn-save bulk-apply" @onclick="ApplyBulkStatus"
+                        disabled="@(_bulkSaving || string.IsNullOrEmpty(_bulkStatus))">
+                    @if (_bulkSaving)
+                    { <span>@_bulkProgress / @_checkedRows.Count...</span> }
+                    else
+                    { <span>Применить</span> }
+                </button>
+                <button class="btn-cancel bulk-clear" @onclick="ClearChecked">✕ Снять</button>
+                @if (_bulkError != null)
+                {
+                    <span class="bulk-error">@_bulkError</span>
+                }
+            </div>
+        }
         <div class="table-wrapper">
             <table class="orders-table">
                 <thead>
                     <tr>
+                        <th @onclick:stopPropagation="true" style="width:36px">
+                            <input type="checkbox"
+                                   checked="@(Filtered.Count > 0 && _checkedRows.Count == Filtered.Count)"
+                                   @onchange="ToggleAll" />
+                        </th>
                         <th>#</th>
                         <th>Адрес</th>
                         <th>Телефон</th>
@@ -66,7 +95,13 @@
                 <tbody>
                     @foreach (var o in Filtered)
                     {
-                        <tr class="@RowClass(o.Status)" @onclick="() => OpenDetail(o)" style="cursor:pointer">
+                        <tr class="@RowClass(o.Status) @(_checkedRows.Contains(o.RowIndex) ? "row-checked" : "")"
+                            @onclick="() => OpenDetail(o)" style="cursor:pointer">
+                            <td @onclick:stopPropagation="true">
+                                <input type="checkbox"
+                                       checked="@_checkedRows.Contains(o.RowIndex)"
+                                       @onchange="() => ToggleCheck(o.RowIndex)" />
+                            </td>
                             <td>@o.OrderNumber</td>
                             <td>@o.Address</td>
                             <td @onclick:stopPropagation="true">
@@ -330,6 +365,56 @@
     string _editComments = "";
     string? _detailError;
 
+    // Bulk selection
+    HashSet<int> _checkedRows = new();
+    string _bulkStatus = "";
+    bool _bulkSaving = false;
+    int _bulkProgress = 0;
+    string? _bulkError;
+
+    void ToggleCheck(int rowIndex)
+    {
+        if (_checkedRows.Contains(rowIndex)) _checkedRows.Remove(rowIndex);
+        else _checkedRows.Add(rowIndex);
+    }
+
+    void ToggleAll()
+    {
+        if (_checkedRows.Count == Filtered.Count)
+            _checkedRows.Clear();
+        else
+            _checkedRows = Filtered.Select(o => o.RowIndex).ToHashSet();
+    }
+
+    void ClearChecked()
+    {
+        _checkedRows.Clear();
+        _bulkStatus = "";
+        _bulkError = null;
+    }
+
+    async Task ApplyBulkStatus()
+    {
+        if (string.IsNullOrEmpty(_bulkStatus) || _checkedRows.Count == 0) return;
+        _bulkSaving = true;
+        _bulkProgress = 0;
+        _bulkError = null;
+        try
+        {
+            var toUpdate = Filtered.Where(o => _checkedRows.Contains(o.RowIndex)).ToList();
+            foreach (var o in toUpdate)
+            {
+                await Sheets.UpdateStatusAsync(o.RowIndex, _bulkStatus);
+                _bulkProgress++;
+                StateHasChanged();
+            }
+            ClearChecked();
+            await LoadOrders();
+        }
+        catch (Exception ex) { _bulkError = "Ошибка: " + ex.Message; }
+        finally { _bulkSaving = false; }
+    }
+
     Timer? _pollTimer;
     int _lastOrderCount = 0;
 
@@ -399,7 +484,6 @@
     void OnDateTextInput(ChangeEventArgs e)
     {
         _dateText = e.Value?.ToString() ?? "";
-        // Parse various formats: dd.MM.yyyy, dd/MM/yyyy, yyyy-MM-dd
         string[] formats = { "dd.MM.yyyy", "d.M.yyyy", "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd" };
         if (DateTime.TryParseExact(_dateText, formats,
             System.Globalization.CultureInfo.InvariantCulture,
