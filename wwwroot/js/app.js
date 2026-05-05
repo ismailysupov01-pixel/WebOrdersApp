@@ -24,6 +24,16 @@ window.showNotify = function (title, body) {
     }
 };
 
+// ===== SCROLL PRESERVATION =====
+window.getScrollTop = function (selector) {
+    const el = document.querySelector(selector);
+    return el ? el.scrollTop : 0;
+};
+window.setScrollTop = function (selector, pos) {
+    const el = document.querySelector(selector);
+    if (el) el.scrollTop = pos;
+};
+
 // ===== MAP HELPERS =====
 window.mapInvalidateSize = function () {
     if (typeof _map !== 'undefined' && _map) {

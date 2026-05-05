@@ -392,6 +392,9 @@
     string _editComments = "";
     string? _detailError;
 
+    // Scroll restoration after poll re-render
+    double _scrollPosToRestore = -1;
+
     // Bulk selection
     HashSet<int> _checkedRows = new();
     string _bulkStatus = "";
@@ -455,6 +458,13 @@
             _pollTimer = new Timer(async _ => await InvokeAsync(PollOrders),
                 null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
         }
+        // Восстановить позицию прокрутки после фонового обновления
+        if (_scrollPosToRestore >= 0)
+        {
+            var pos = _scrollPosToRestore;
+            _scrollPosToRestore = -1;
+            try { await JS.InvokeVoidAsync("setScrollTop", ".table-wrapper", pos); } catch { }
+        }
         // Маска телефона в модалке "Новая заявка" — вызываем каждый рендер пока открыта
         if (_showAdd)
         {
@@ -475,7 +485,12 @@
             if (_lastOrderCount > 0 && orders.Count > _lastOrderCount)
                 await JS.InvokeVoidAsync("showNotify", "Новая заявка!", $"Добавлено заявок: {orders.Count - _lastOrderCount}");
             _lastOrderCount = orders.Count;
-            if (_orders != null) { _orders = orders; StateHasChanged(); }
+            if (_orders != null)
+            {
+                try { _scrollPosToRestore = await JS.InvokeAsync<double>("getScrollTop", ".table-wrapper"); } catch { }
+                _orders = orders;
+                StateHasChanged();
+            }
         }
         catch { }
     }
