@@ -26,11 +26,6 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
-// Антифалсификация только для не-API путей (внешние webhook'и не имеют токена)
-app.UseWhen(
-    ctx => !ctx.Request.Path.StartsWithSegments("/api"),
-    b => b.UseAntiforgery()
-);
 
 // ===== TILDA WEBHOOK =====
 // Принимает POST /api/orders?key=SECRET от формы Tilda
