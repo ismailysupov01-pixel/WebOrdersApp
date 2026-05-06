@@ -104,7 +104,7 @@ app.MapPost("/api/orders", async (HttpRequest request, GoogleSheetsService sheet
 
     await sheetsService.AddOrderAsync(order);
     return Results.Json(new { success = true });
-}).ExcludeFromDescription();
+}).DisableAntiforgery().ExcludeFromDescription();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
