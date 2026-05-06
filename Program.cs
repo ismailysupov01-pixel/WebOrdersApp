@@ -46,6 +46,10 @@ app.MapPost("/api/orders", async (HttpRequest request, GoogleSheetsService sheet
         var body = await request.ReadFromJsonAsync<Dictionary<string, string>>();
         if (body != null)
         {
+            // Tilda проверяет webhook тестовым JSON-запросом {"test":"test"}
+            if (body.ContainsKey("test"))
+                return Results.Json(new { success = true });
+
             body.TryGetValue("address",  out address!);
             body.TryGetValue("phone",    out phone!);
             body.TryGetValue("amount",   out amount!);
