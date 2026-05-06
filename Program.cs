@@ -58,6 +58,11 @@ app.MapPost("/api/orders", async (HttpRequest request, GoogleSheetsService sheet
     {
         // Tilda отправляет application/x-www-form-urlencoded
         var form = await request.ReadFormAsync();
+
+        // Tilda проверяет webhook тестовым запросом test=test — сразу отвечаем OK
+        if (form.ContainsKey("test"))
+            return Results.Json(new { success = true });
+
         address  = form["address"].FirstOrDefault()  ?? "";
         phone    = form["phone"].FirstOrDefault()    ?? "";
         amount   = form["amount"].FirstOrDefault()   ?? "";
