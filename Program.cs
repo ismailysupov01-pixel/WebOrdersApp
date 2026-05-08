@@ -26,6 +26,8 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseRouting();
+app.UseAntiforgery();
 
 // ===== TILDA WEBHOOK =====
 // Принимает POST /api/orders?key=SECRET от формы Tilda
