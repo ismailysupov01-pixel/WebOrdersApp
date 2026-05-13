@@ -83,14 +83,14 @@ public class GoogleSheetsService
             rowIndex++;
         }
 
-        // Сортируем по дате по возрастанию
+        // Сортируем по дате по убыванию (новые сверху)
         orders.Sort((a, b) =>
         {
             bool da = TryParseDate(a.Date, out var dtA);
             bool db = TryParseDate(b.Date, out var dtB);
-            if (da && db) return dtA.CompareTo(dtB);
-            if (da) return -1;
-            if (db) return 1;
+            if (da && db) return dtB.CompareTo(dtA);
+            if (da) return 1;
+            if (db) return -1;
             return 0;
         });
 
