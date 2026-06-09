@@ -66,12 +66,16 @@ public class GoogleSheetsService
         foreach (var row in response.Values)
         {
             string Get(int i) => row.Count > i ? row[i]?.ToString() ?? "" : "";
+            string NormalizePhone(string p) {
+                if (p.Length == 11 && p.StartsWith("8")) return "+7" + p.Substring(1);
+                return p;
+            }
             orders.Add(new Order
             {
                 RowIndex    = rowIndex,
                 OrderNumber = rowIndex - 1,
                 Address     = Get(0),
-                Phone       = Get(1),
+                Phone       = NormalizePhone(Get(1)),
                 Amount      = Get(2),
                 Date        = Get(3),
                 Status      = string.IsNullOrEmpty(Get(4)) ? OrderStatus.New : Get(4),
